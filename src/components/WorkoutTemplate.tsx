@@ -254,9 +254,16 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
         let sx = 0, sy = 0, sw = img.width, sh = img.height
         if (ir > cr) { sw = img.height * cr; sx = (img.width - sw) / 2 }
         else { sh = img.width / cr; sy = (img.height - sh) / 2 }
-        if (ov === 'bw') ctx.filter = 'grayscale(1)'
         ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H)
-        ctx.filter = 'none'
+        if (ov === 'bw') {
+          const imageData = ctx.getImageData(0, 0, W, H)
+          const d = imageData.data
+          for (let i = 0; i < d.length; i += 4) {
+            const gray = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2]
+            d[i] = d[i+1] = d[i+2] = gray
+          }
+          ctx.putImageData(imageData, 0, 0)
+        }
         applyOverlay(ctx, ov)
         ctx.shadowBlur = 0
         const symbol = new Image()
