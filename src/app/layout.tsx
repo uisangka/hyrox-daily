@@ -32,7 +32,7 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <link rel="icon" href="/lagom-symbol.png" type="image/png" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/lagom-symbol.png" />
         <meta name="theme-color" content="#0c0c0c" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
