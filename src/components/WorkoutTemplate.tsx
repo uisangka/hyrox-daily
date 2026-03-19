@@ -307,6 +307,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
   useEffect(() => {
     const onMove = (e: MouseEvent | TouchEvent) => {
       if (!dragging) return
+      if ('touches' in e) e.preventDefault()
       const { clientX, clientY } = 'touches' in e ? e.touches[0] : e
       const p = getPos(clientX, clientY)
       if (p) setTextPos(p)
@@ -314,7 +315,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
     const onUp = () => setDragging(false)
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
-    window.addEventListener('touchmove', onMove, { passive: true })
+    window.addEventListener('touchmove', onMove, { passive: false })
     window.addEventListener('touchend', onUp)
     return () => {
       window.removeEventListener('mousemove', onMove)
