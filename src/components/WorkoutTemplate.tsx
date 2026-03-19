@@ -11,7 +11,7 @@ interface Props {
 const W = 1080
 const H = 1350
 
-type OverlayId = 'none' | 'soft' | 'strong' | 'frame'
+type OverlayId = 'none' | 'soft' | 'strong' | 'frame' | 'bw'
 type TextStyleId = 'minimal' | 'bold' | 'editorial' | 'clean'
 type FontScale = 0.6 | 0.8 | 1 | 1.2 | 1.5
 
@@ -20,6 +20,7 @@ const OVERLAYS: { id: OverlayId; label: string }[] = [
   { id: 'soft',   label: 'SOFT'   },
   { id: 'strong', label: 'STRONG' },
   { id: 'frame',  label: 'FRAME'  },
+  { id: 'bw',     label: 'B&W'    },
 ]
 
 const TEXT_STYLES: { id: TextStyleId; label: string }[] = [
@@ -62,6 +63,12 @@ function applyOverlay(ctx: CanvasRenderingContext2D, overlay: OverlayId) {
     grad.addColorStop(0, 'rgba(12,12,12,0)')
     grad.addColorStop(0.25, 'rgba(12,12,12,0.75)')
     grad.addColorStop(1, 'rgba(12,12,12,0.98)')
+    ctx.fillStyle = grad
+    ctx.fillRect(0, 0, W, H)
+  } else if (overlay === 'bw') {
+    const grad = ctx.createLinearGradient(0, H * 0.5, 0, H)
+    grad.addColorStop(0, 'rgba(0,0,0,0)')
+    grad.addColorStop(1, 'rgba(0,0,0,0.7)')
     ctx.fillStyle = grad
     ctx.fillRect(0, 0, W, H)
   } else if (overlay === 'frame') {
@@ -247,7 +254,9 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
         let sx = 0, sy = 0, sw = img.width, sh = img.height
         if (ir > cr) { sw = img.height * cr; sx = (img.width - sw) / 2 }
         else { sh = img.width / cr; sy = (img.height - sh) / 2 }
+        if (ov === 'bw') ctx.filter = 'grayscale(1)'
         ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H)
+        ctx.filter = 'none'
         applyOverlay(ctx, ov)
         ctx.shadowBlur = 0
         const symbol = new Image()
@@ -394,7 +403,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
             {/* 오버레이 선택 */}
             <div className="mb-3">
               <p className="text-xs text-gray-500 mb-2 tracking-widest uppercase">오버레이</p>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-5 gap-2">
                 {OVERLAYS.map(o => (
                   <button key={o.id} onClick={() => setOverlay(o.id)}
                     className={`py-2 rounded text-xs font-bebas tracking-wider transition ${
