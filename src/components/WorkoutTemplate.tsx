@@ -176,6 +176,7 @@ function applyTextStyle(
 export default function WorkoutTemplate({ workout, onClose }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const previewRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const drawIdRef = useRef(0)
   const [uploadedImage, setUploadedImage] = useState<string | null>(null)
   const [overlay, setOverlay] = useState<OverlayId>('soft')
@@ -353,15 +354,17 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
         {!uploadedImage ? (
           <>
             <canvas ref={canvasRef} className="hidden" />
-            <label
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
               className="w-full bg-gray-900 rounded-lg mb-4 flex flex-col items-center justify-center border-2 border-dashed border-gray-700 hover:border-accent transition cursor-pointer"
               style={{ aspectRatio: '4/5' }}
             >
               <span className="text-5xl mb-4">📷</span>
               <span className="text-white font-bebas text-xl">사진 선택</span>
               <span className="text-gray-500 text-sm mt-1">탭하여 업로드</span>
-              <input type="file" accept="image/*" onChange={handleFile} style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }} />
-            </label>
+            </button>
           </>
         ) : (
           <>
@@ -458,10 +461,10 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
             <p className="text-center text-gray-600 text-xs mb-4">드래그해서 텍스트 위치 조정</p>
 
             <div className="flex gap-3">
-              <label className="flex-1 py-3 bg-gray-800 text-white font-bebas text-lg rounded text-center cursor-pointer hover:bg-gray-700 transition">
+              <button type="button" onClick={() => fileInputRef.current?.click()}
+                className="flex-1 py-3 bg-gray-800 text-white font-bebas text-lg rounded text-center cursor-pointer hover:bg-gray-700 transition">
                 사진 변경
-                <input type="file" accept="image/*" onChange={handleFile} style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }} />
-              </label>
+              </button>
               <button onClick={handleDownload}
                 className="flex-1 py-3 bg-accent text-dark font-bebas text-lg rounded hover:bg-yellow-400 transition">
                 저장하기
