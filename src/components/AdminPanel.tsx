@@ -13,6 +13,48 @@ interface FormData {
 
 const PAGE_SIZE = 10
 
+const TRAINING_GUIDE = [
+  { title: 'ENGINE BUILDER', desc: '유산소 엔진 구축. 중저강도 장시간 유지.', example: '45분 Zone 2 런 / 로잉 20분 + 스키어그 20분' },
+  { title: 'ZONE 2 RUN', desc: '대화 가능한 강도로 지방 연소 능력 향상.', example: '40~60분 편안한 페이스 런' },
+  { title: 'THRESHOLD RUN', desc: '젖산 역치 강도에서 페이스 유지력 향상. Zone 4.', example: '20분 역치 페이스 런 x 2세트 / 휴식 3분' },
+  { title: 'INTERVAL HELL', desc: '고강도 반복으로 스피드 향상. Zone 5.', example: '400m 전력 런 x 8 / 휴식 90초' },
+  { title: 'VO2 MAX SESSION', desc: '최대 산소 섭취량 한계 도달 훈련.', example: '1km 전력 런 x 5 / 휴식 2분' },
+  { title: 'TRANSITION KILLER', desc: '달리기→스테이션 즉시 전환 적응.', example: '200m 런 + 월볼 20개 x 6라운드' },
+  { title: 'RACE PACE RUN', desc: '실전 레이스 페이스 적응 훈련.', example: '1km 레이스 페이스 x 6 / 휴식 2분' },
+  { title: 'STATION DRILL', desc: '스테이션 동작 효율과 근지구력 향상.', example: '슬레드 푸시+풀 / 버피 브로드점프 / 월볼 각 3세트' },
+  { title: 'HYROX SIM', desc: '실전과 동일한 구성으로 레이스 시뮬레이션.', example: '1km 런 + 스테이션 x 4~8라운드' },
+  { title: 'LACTATE FLUSH', desc: '고강도 훈련 후 젖산 제거 회복 훈련.', example: '20~30분 아주 가벼운 조깅 또는 로잉' },
+  { title: 'STRENGTH ENDURANCE', desc: '피로한 상태에서 스테이션 동작 반복. 근지구력.', example: '슬레드 + 케틀벨 스윙 + 월볼 x 5라운드' },
+  { title: 'AEROBIC POWER', desc: '중강도 장시간 파워 유지.', example: '로잉 500m + 런 500m x 6 / 휴식 1분' },
+  { title: 'BRICK SESSION', desc: '런+근력을 쉬지 않고 연속 수행.', example: '런 1km + 버피 20개 + 슬레드 푸시 x 4라운드' },
+]
+
+function TrainingGuide() {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="mb-8 border border-gray-800 rounded-lg overflow-hidden">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex justify-between items-center px-5 py-4 bg-gray-900 hover:bg-gray-800 transition text-left"
+      >
+        <span className="font-bebas text-xl tracking-wider text-accent">훈련 가이드 (13종)</span>
+        <span className="text-gray-400 text-lg">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div className="divide-y divide-gray-800">
+          {TRAINING_GUIDE.map((t) => (
+            <div key={t.title} className="px-5 py-4 bg-gray-900">
+              <p className="font-bebas text-lg text-white tracking-wider mb-1">{t.title}</p>
+              <p className="text-gray-400 text-sm mb-1">{t.desc}</p>
+              <p className="text-gray-600 text-xs">예시: {t.example}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function AdminPanel() {
   const [formData, setFormData] = useState<FormData>({
     date: new Date().toISOString().split('T')[0],
@@ -266,6 +308,9 @@ export default function AdminPanel() {
             </div>
           </div>
         </form>
+
+        {/* Training Guide */}
+        <TrainingGuide />
 
         {/* Workouts List */}
         <div>
