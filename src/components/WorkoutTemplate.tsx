@@ -351,10 +351,11 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
           <button onClick={onClose} className="text-gray-500 hover:text-white text-3xl leading-none">×</button>
         </div>
 
+        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
+
         {!uploadedImage ? (
           <>
             <canvas ref={canvasRef} className="hidden" />
-            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
