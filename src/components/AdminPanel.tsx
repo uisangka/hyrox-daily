@@ -157,7 +157,7 @@ export default function AdminPanel() {
       await fetchWorkouts(1)
       setTimeout(() => setSuccessMessage(''), 3000)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save workout')
+      setError(err instanceof Error ? err.message : JSON.stringify(err))
     }
   }
 
