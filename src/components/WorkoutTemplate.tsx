@@ -182,6 +182,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
   const previewRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const drawIdRef = useRef(0)
+  const bgCacheRef = useRef<ImageData | null>(null)
   const [uploadedImage, setUploadedImage] = useState<string | null>(null)
   const [overlay, setOverlay] = useState<OverlayId>('soft')
   const [textStyle, setTextStyle] = useState<TextStyleId>('minimal')
@@ -201,7 +202,29 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
     exercises: editExercises.split('\n'),
   }
 
-  const draw = useCallback(async (src: string, ov: OverlayId, ts: TextStyleId, pos: { x: number; y: number }, w: typeof workout, scale: number, isDark: boolean) => {
+  const drawText = useCallback((ts: TextStyleId, pos: { x: number; y: number }, w: typeof workout, scale: number, isDark: boolean) => {
+    const canvas = canvasRef.current
+    if (!canvas || !bgCacheRef.current) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.putImageData(bgCacheRef.current, 0, 0)
+    applyTextStyle(ctx, w, ts, pos.x * W, pos.y * H, scale, isDark)
+    ctx.shadowBlur = 0
+    ctx.font = `700 46px "Bebas Neue", Impact, sans-serif`
+    ctx.fillStyle = 'white'
+    ctx.fillText('TODAY', 56, 68)
+    const tw = ctx.measureText('TODAY ').width
+    ctx.fillStyle = '#E5FE3D'
+    ctx.fillText('WORKOUT', 56 + tw, 68)
+    ctx.font = '300 22px -apple-system, sans-serif'
+    ctx.fillStyle = 'rgba(255,255,255,0.38)'
+    ctx.fillText(formatDate(w.date), 58, 96)
+    ctx.font = `700 32px "Bebas Neue", Impact, sans-serif`
+    ctx.fillStyle = 'rgba(255,255,255,0.75)'
+    ctx.fillText('@HYROX_DAILY', 56, H - 32)
+  }, [workout])
+
+  const drawBg = useCallback(async (src: string, ov: OverlayId) => {
     const drawId = ++drawIdRef.current
     const canvas = canvasRef.current
     if (!canvas) return
@@ -219,18 +242,14 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
     await new Promise<void>((resolve) => {
       const img = new Image()
       img.onload = () => {
+        if (drawIdRef.current !== drawId) return
         const cr = W / H, ir = img.width / img.height
         let sx = 0, sy = 0, sw = img.width, sh = img.height
         if (ir > cr) { sw = img.height * cr; sx = (img.width - sw) / 2 }
         else { sh = img.width / cr; sy = (img.height - sh) / 2 }
         ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H)
-
-        if (drawIdRef.current !== drawId) return
-
         applyOverlay(ctx, ov)
         ctx.shadowBlur = 0
-
-        // Lagom symbol top right
         const symbol = new Image()
         symbol.onload = () => {
           ctx.globalAlpha = 0.2
@@ -238,42 +257,9 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
           ctx.drawImage(symbol, W - 44 - 40, 28, 44, 44)
           ctx.filter = 'none'
           ctx.globalAlpha = 1
-
-          // 운동 텍스트
-          applyTextStyle(ctx, w, ts, pos.x * W, pos.y * H, scale, isDark)
-
-          // TODAY WORKOUT — 항상 맨 위에
-          ctx.shadowBlur = 0
-          ctx.font = `700 46px "Bebas Neue", Impact, sans-serif`
-          ctx.fillStyle = 'white'
-          ctx.fillText('TODAY', 56, 68)
-          const tw = ctx.measureText('TODAY ').width
-          ctx.fillStyle = '#E5FE3D'
-          ctx.fillText('WORKOUT', 56 + tw, 68)
-          ctx.font = '300 22px -apple-system, sans-serif'
-          ctx.fillStyle = 'rgba(255,255,255,0.38)'
-          ctx.fillText(formatDate(w.date), 58, 96)
-
-          // @HYROX_DAILY — 항상 맨 위에
-          ctx.font = `700 32px "Bebas Neue", Impact, sans-serif`
-          ctx.fillStyle = 'rgba(255,255,255,0.75)'
-          ctx.fillText('@HYROX_DAILY', 56, H - 32)
-
           resolve()
         }
-        symbol.onerror = () => {
-          applyTextStyle(ctx, w, ts, pos.x * W, pos.y * H, scale, isDark)
-          ctx.font = `700 46px "Bebas Neue", Impact, sans-serif`
-          ctx.fillStyle = 'white'
-          ctx.fillText('TODAY', 56, 68)
-          const tw2 = ctx.measureText('TODAY ').width
-          ctx.fillStyle = '#E5FE3D'
-          ctx.fillText('WORKOUT', 56 + tw2, 68)
-          ctx.font = `700 32px "Bebas Neue", Impact, sans-serif`
-          ctx.fillStyle = 'rgba(255,255,255,0.75)'
-          ctx.fillText('@HYROX_DAILY', 56, H - 32)
-          resolve()
-        }
+        symbol.onerror = () => resolve()
         symbol.src = '/lagom-symbol.png'
       }
       img.src = src
@@ -282,7 +268,6 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
     await new Promise<void>((resolve) => {
       const logo = new Image()
       logo.onload = () => {
-        // 하단 가운데 워터마크
         const lw = 260, lh = 42
         ctx.globalAlpha = 0.2
         ctx.filter = 'invert(1)'
@@ -294,11 +279,24 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
       logo.onerror = () => resolve()
       logo.src = '/lagom-logo.png'
     })
-  }, [workout])
 
+    if (drawIdRef.current !== drawId) return
+    bgCacheRef.current = ctx.getImageData(0, 0, W, H)
+  }, [])
+
+  // 이미지/오버레이 변경 시 배경 재생성 후 텍스트 그리기
   useEffect(() => {
-    if (uploadedImage) draw(uploadedImage, overlay, textStyle, textPos, editedWorkout, fontSize, darkText)
-  }, [uploadedImage, overlay, textStyle, textPos, fontSize, darkText, editTitle, editFormat, editExercises, draw])
+    if (!uploadedImage) return
+    const w = { ...workout, title: editTitle, format: editFormat, exercises: editExercises.split('\n') }
+    drawBg(uploadedImage, overlay).then(() => drawText(textStyle, textPos, w, fontSize, darkText))
+  }, [uploadedImage, overlay, drawBg])
+
+  // 텍스트 관련 변경 시 배경 재사용하고 텍스트만 다시 그리기
+  useEffect(() => {
+    if (!uploadedImage || !bgCacheRef.current) return
+    const w = { ...workout, title: editTitle, format: editFormat, exercises: editExercises.split('\n') }
+    drawText(textStyle, textPos, w, fontSize, darkText)
+  }, [textStyle, textPos, fontSize, darkText, editTitle, editFormat, editExercises, drawText])
 
   const getPos = (clientX: number, clientY: number) => {
     const el = previewRef.current
@@ -316,7 +314,11 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
       if ('touches' in e) e.preventDefault()
       const { clientX, clientY } = 'touches' in e ? e.touches[0] : e
       const p = getPos(clientX, clientY)
-      if (p) setTextPos(p)
+      if (p) {
+        setTextPos(p)
+        const w = { ...workout, title: editTitle, format: editFormat, exercises: editExercises.split('\n') }
+        drawText(textStyle, p, w, fontSize, darkText)
+      }
     }
     const onUp = () => setDragging(false)
     window.addEventListener('mousemove', onMove)
@@ -329,7 +331,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
       window.removeEventListener('touchmove', onMove)
       window.removeEventListener('touchend', onUp)
     }
-  }, [dragging])
+  }, [dragging, drawText, textStyle, fontSize, darkText, editTitle, editFormat, editExercises, workout])
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
