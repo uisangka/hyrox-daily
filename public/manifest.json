@@ -1,0 +1,12 @@
+{
+  "name": "HYROX Daily - Team LAGOM",
+  "short_name": "HYROX DAILY",
+  "description": "Daily HYROX workout programming by Team LAGOM",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#0c0c0c",
+  "background_color": "#0c0c0c",
+  "categories": ["fitness", "sports"]
+}
