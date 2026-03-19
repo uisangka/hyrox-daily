@@ -157,7 +157,12 @@ export default function AdminPanel() {
       await fetchWorkouts(1)
       setTimeout(() => setSuccessMessage(''), 3000)
     } catch (err) {
-      setError(err instanceof Error ? err.message : JSON.stringify(err))
+      const msg = err instanceof Error ? err.message : JSON.stringify(err)
+      if (msg.includes('duplicate key') || msg.includes('workouts_date_key')) {
+        setError('해당 날짜에 이미 운동이 등록되어 있습니다. 날짜를 확인해주세요.')
+      } else {
+        setError(msg)
+      }
     }
   }
 
