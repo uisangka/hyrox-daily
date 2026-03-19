@@ -252,10 +252,16 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
         ctx.shadowBlur = 0
         const symbol = new Image()
         symbol.onload = () => {
+          const sw2 = 44, sh2 = 44
+          const off = document.createElement('canvas')
+          off.width = sw2; off.height = sh2
+          const offCtx = off.getContext('2d')!
+          offCtx.drawImage(symbol, 0, 0, sw2, sh2)
+          offCtx.globalCompositeOperation = 'source-in'
+          offCtx.fillStyle = 'white'
+          offCtx.fillRect(0, 0, sw2, sh2)
           ctx.globalAlpha = 0.2
-          ctx.filter = 'invert(1)'
-          ctx.drawImage(symbol, W - 44 - 40, 28, 44, 44)
-          ctx.filter = 'none'
+          ctx.drawImage(off, W - sw2 - 40, 28, sw2, sh2)
           ctx.globalAlpha = 1
           resolve()
         }
@@ -269,10 +275,15 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
       const logo = new Image()
       logo.onload = () => {
         const lw = 260, lh = 42
+        const off = document.createElement('canvas')
+        off.width = lw; off.height = lh
+        const offCtx = off.getContext('2d')!
+        offCtx.drawImage(logo, 0, 0, lw, lh)
+        offCtx.globalCompositeOperation = 'source-in'
+        offCtx.fillStyle = 'white'
+        offCtx.fillRect(0, 0, lw, lh)
         ctx.globalAlpha = 0.2
-        ctx.filter = 'invert(1)'
-        ctx.drawImage(logo, (W - lw) / 2, H - lh - 28, lw, lh)
-        ctx.filter = 'none'
+        ctx.drawImage(off, (W - lw) / 2, H - lh - 28, lw, lh)
         ctx.globalAlpha = 1
         resolve()
       }
