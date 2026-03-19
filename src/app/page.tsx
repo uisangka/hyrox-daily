@@ -30,7 +30,7 @@ export default function Home() {
     try {
       setLoading(true)
       setError(null)
-      const today = new Date().toISOString().split('T')[0]
+      const today = new Date().toLocaleDateString('en-CA')
 
       const { data: todayData, error: todayError } = await supabase
         .from('workouts')
@@ -62,7 +62,7 @@ export default function Home() {
   const loadMoreArchive = async () => {
     try {
       setLoadingMore(true)
-      const today = new Date().toISOString().split('T')[0]
+      const today = new Date().toLocaleDateString('en-CA')
       const nextPage = archivePage + 1
       const from = archivePage * ARCHIVE_PAGE_SIZE
       const to = from + ARCHIVE_PAGE_SIZE - 1
@@ -153,7 +153,7 @@ export default function Home() {
             <div className="mb-8">
               <h2 className="font-bebas text-3xl text-gray-400 mb-0">TODAY WORKOUT</h2>
               <span className="text-sm text-gray-500 block">
-                {formatDate(new Date().toISOString().split('T')[0])}
+                {formatDate(new Date().toLocaleDateString('en-CA'))}
               </span>
             </div>
             {todayWorkouts.map((workout, idx) => (
