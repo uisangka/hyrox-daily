@@ -257,11 +257,13 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
           off.width = sw2; off.height = sh2
           const offCtx = off.getContext('2d')!
           offCtx.drawImage(symbol, 0, 0, sw2, sh2)
-          offCtx.globalCompositeOperation = 'source-in'
+          offCtx.globalCompositeOperation = 'difference'
           offCtx.fillStyle = 'white'
           offCtx.fillRect(0, 0, sw2, sh2)
-          ctx.globalAlpha = 0.2
+          ctx.globalAlpha = 0.25
+          ctx.globalCompositeOperation = 'screen'
           ctx.drawImage(off, W - sw2 - 40, 28, sw2, sh2)
+          ctx.globalCompositeOperation = 'source-over'
           ctx.globalAlpha = 1
           resolve()
         }
@@ -279,11 +281,13 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
         off.width = lw; off.height = lh
         const offCtx = off.getContext('2d')!
         offCtx.drawImage(logo, 0, 0, lw, lh)
-        offCtx.globalCompositeOperation = 'source-in'
+        offCtx.globalCompositeOperation = 'difference'
         offCtx.fillStyle = 'white'
         offCtx.fillRect(0, 0, lw, lh)
         ctx.globalAlpha = 0.2
+        ctx.globalCompositeOperation = 'screen'
         ctx.drawImage(off, (W - lw) / 2, H - lh - 28, lw, lh)
+        ctx.globalCompositeOperation = 'source-over'
         ctx.globalAlpha = 1
         resolve()
       }
