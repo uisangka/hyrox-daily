@@ -360,7 +360,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
               <span className="text-5xl mb-4">📷</span>
               <span className="text-white font-bebas text-xl">사진 선택</span>
               <span className="text-gray-500 text-sm mt-1">탭하여 업로드</span>
-              <input type="file" accept="image/*" onChange={handleFile} className="hidden" />
+              <input type="file" accept="image/*" onChange={handleFile} style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }} />
             </label>
           </>
         ) : (
@@ -460,7 +460,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
             <div className="flex gap-3">
               <label className="flex-1 py-3 bg-gray-800 text-white font-bebas text-lg rounded text-center cursor-pointer hover:bg-gray-700 transition">
                 사진 변경
-                <input type="file" accept="image/*" onChange={handleFile} className="hidden" />
+                <input type="file" accept="image/*" onChange={handleFile} style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }} />
               </label>
               <button onClick={handleDownload}
                 className="flex-1 py-3 bg-accent text-dark font-bebas text-lg rounded hover:bg-yellow-400 transition">
