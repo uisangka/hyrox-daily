@@ -78,26 +78,30 @@ function applyTextStyle(
   style: TextStyleId,
   tx: number,
   ty: number,
-  scale: number = 1
+  scale: number = 1,
+  dark: boolean = false
 ) {
   const groups = parseExercises(workout.exercises)
   let y = ty
-
   const s = scale
+  const titleColor = dark ? 'rgba(0,0,0,0.92)' : 'rgba(255,255,255,0.95)'
+  const accentColor = dark ? '#b8a800' : '#E5FE3D'
+  const bodyColor = dark ? 'rgba(0,0,0,0.65)' : 'rgba(255,255,255,0.6)'
+
   if (style === 'minimal') {
     if (workout.title) {
       ctx.font = `700 ${Math.round(56*s)}px "Bebas Neue", Impact, sans-serif`
-      ctx.fillStyle = 'rgba(255,255,255,0.95)'
+      ctx.fillStyle = titleColor
       ctx.fillText(workout.title, tx, y); y += Math.round(64*s)
     }
     if (workout.format) {
       ctx.font = `300 ${Math.round(24*s)}px -apple-system, sans-serif`
-      ctx.fillStyle = 'rgba(229,254,61,0.85)'
+      ctx.fillStyle = accentColor
       ctx.fillText(workout.format, tx, y); y += Math.round(36*s)
     }
     y += 4
     ctx.font = `300 ${Math.round(22*s)}px -apple-system, sans-serif`
-    ctx.fillStyle = 'rgba(255,255,255,0.6)'
+    ctx.fillStyle = bodyColor
     for (const group of groups) {
       for (const ex of group) { if (y > H - 60) break; ctx.fillText(ex, tx, y); y += Math.round(30*s) }
       y += Math.round(10*s)
@@ -106,7 +110,7 @@ function applyTextStyle(
   } else if (style === 'bold') {
     if (workout.title) {
       ctx.font = `700 ${Math.round(120*s)}px "Bebas Neue", Impact, sans-serif`
-      ctx.fillStyle = 'white'
+      ctx.fillStyle = dark ? 'rgba(0,0,0,0.92)' : 'white'
       const words = workout.title.split(' ')
       let line = ''
       for (const word of words) {
@@ -119,11 +123,11 @@ function applyTextStyle(
     }
     if (workout.format) {
       ctx.font = `700 ${Math.round(52*s)}px "Bebas Neue", Impact, sans-serif`
-      ctx.fillStyle = '#E5FE3D'
+      ctx.fillStyle = accentColor
       ctx.fillText(workout.format, tx, y); y += Math.round(62*s)
     }
     ctx.font = `400 ${Math.round(30*s)}px -apple-system, sans-serif`
-    ctx.fillStyle = 'rgba(255,255,255,0.82)'
+    ctx.fillStyle = dark ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.82)'
     for (const group of groups) {
       for (const ex of group) { if (y > H - 60) break; ctx.fillText(ex, tx, y); y += Math.round(40*s) }
       y += Math.round(14*s)
@@ -132,21 +136,21 @@ function applyTextStyle(
   } else if (style === 'editorial') {
     const x = tx + 20
     ctx.shadowBlur = 0
-    ctx.fillStyle = '#E5FE3D'
+    ctx.fillStyle = accentColor
     ctx.fillRect(tx, y - 14, 2, Math.round(240*s))
     if (workout.title) {
       ctx.font = `700 ${Math.round(70*s)}px "Bebas Neue", Impact, sans-serif`
-      ctx.fillStyle = 'white'
+      ctx.fillStyle = dark ? 'rgba(0,0,0,0.92)' : 'white'
       ctx.fillText(workout.title, x, y); y += Math.round(78*s)
     }
     if (workout.format) {
       ctx.font = `300 ${Math.round(26*s)}px -apple-system, sans-serif`
-      ctx.fillStyle = 'rgba(229,254,61,0.85)'
+      ctx.fillStyle = accentColor
       ctx.fillText(workout.format.toUpperCase(), x, y); y += Math.round(38*s)
     }
     y += 10
     ctx.font = `300 ${Math.round(24*s)}px -apple-system, sans-serif`
-    ctx.fillStyle = 'rgba(255,255,255,0.65)'
+    ctx.fillStyle = dark ? 'rgba(0,0,0,0.65)' : 'rgba(255,255,255,0.65)'
     for (const group of groups) {
       for (const ex of group) { if (y > H - 60) break; ctx.fillText(ex, x, y); y += Math.round(32*s) }
       y += Math.round(12*s)
@@ -155,17 +159,17 @@ function applyTextStyle(
   } else if (style === 'clean') {
     if (workout.title) {
       ctx.font = `700 ${Math.round(82*s)}px "Bebas Neue", Impact, sans-serif`
-      ctx.fillStyle = 'white'
+      ctx.fillStyle = dark ? 'rgba(0,0,0,0.92)' : 'white'
       ctx.fillText(workout.title, tx, y); y += Math.round(90*s)
     }
     if (workout.format) {
       ctx.font = `400 ${Math.round(28*s)}px -apple-system, sans-serif`
-      ctx.fillStyle = '#E5FE3D'
+      ctx.fillStyle = accentColor
       ctx.fillText(workout.format, tx, y); y += Math.round(42*s)
     }
     y += 8
     ctx.font = `300 ${Math.round(26*s)}px -apple-system, sans-serif`
-    ctx.fillStyle = 'rgba(255,255,255,0.75)'
+    ctx.fillStyle = dark ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.75)'
     for (const group of groups) {
       for (const ex of group) { if (y > H - 60) break; ctx.fillText(ex, tx, y); y += Math.round(34*s) }
       y += Math.round(12*s)
@@ -184,6 +188,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
   const [textPos, setTextPos] = useState({ x: 0.052, y: 0.72 })
   const [dragging, setDragging] = useState(false)
   const [fontSize, setFontSize] = useState(1)
+  const [darkText, setDarkText] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
   const [editTitle, setEditTitle] = useState(workout.title || '')
   const [editFormat, setEditFormat] = useState(workout.format || '')
@@ -196,7 +201,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
     exercises: editExercises.split('\n'),
   }
 
-  const draw = useCallback(async (src: string, ov: OverlayId, ts: TextStyleId, pos: { x: number; y: number }, w: typeof workout, scale: number) => {
+  const draw = useCallback(async (src: string, ov: OverlayId, ts: TextStyleId, pos: { x: number; y: number }, w: typeof workout, scale: number, isDark: boolean) => {
     const drawId = ++drawIdRef.current
     const canvas = canvasRef.current
     if (!canvas) return
@@ -235,7 +240,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
           ctx.globalAlpha = 1
 
           // 운동 텍스트
-          applyTextStyle(ctx, w, ts, pos.x * W, pos.y * H, scale)
+          applyTextStyle(ctx, w, ts, pos.x * W, pos.y * H, scale, isDark)
 
           // TODAY WORKOUT — 항상 맨 위에
           ctx.shadowBlur = 0
@@ -257,7 +262,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
           resolve()
         }
         symbol.onerror = () => {
-          applyTextStyle(ctx, w, ts, pos.x * W, pos.y * H, scale)
+          applyTextStyle(ctx, w, ts, pos.x * W, pos.y * H, scale, isDark)
           ctx.font = `700 46px "Bebas Neue", Impact, sans-serif`
           ctx.fillStyle = 'white'
           ctx.fillText('TODAY', 56, 68)
@@ -292,8 +297,8 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
   }, [workout])
 
   useEffect(() => {
-    if (uploadedImage) draw(uploadedImage, overlay, textStyle, textPos, editedWorkout, fontSize)
-  }, [uploadedImage, overlay, textStyle, textPos, fontSize, editTitle, editFormat, editExercises, draw])
+    if (uploadedImage) draw(uploadedImage, overlay, textStyle, textPos, editedWorkout, fontSize, darkText)
+  }, [uploadedImage, overlay, textStyle, textPos, fontSize, darkText, editTitle, editFormat, editExercises, draw])
 
   const getPos = (clientX: number, clientY: number) => {
     const el = previewRef.current
@@ -396,6 +401,21 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
                     {t.label}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* 글자 색상 */}
+            <div className="mb-3">
+              <p className="text-xs text-gray-500 mb-2 tracking-widest uppercase">글자 색상</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={() => setDarkText(false)}
+                  className={`py-2 rounded text-xs font-bebas tracking-wider transition ${!darkText ? 'bg-accent text-dark' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>
+                  WHITE
+                </button>
+                <button onClick={() => setDarkText(true)}
+                  className={`py-2 rounded text-xs font-bebas tracking-wider transition ${darkText ? 'bg-accent text-dark' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>
+                  BLACK
+                </button>
               </div>
             </div>
 
