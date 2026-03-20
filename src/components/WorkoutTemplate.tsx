@@ -410,27 +410,30 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
 
   return (
     <>
-    {saveImageUrl && (
+    {saveImageUrl && (() => {
+      const isAndroid = /Android/.test(navigator.userAgent)
+      return (
       <div className="fixed inset-0 bg-black z-[60] flex flex-col items-center justify-center p-6 gap-6">
         <button onClick={() => setSaveImageUrl(null)} className="absolute top-4 right-4 text-gray-400 hover:text-white text-3xl leading-none">×</button>
-        <p className="font-bebas text-2xl tracking-wider text-white text-center">Safari에서 저장하세요</p>
+        <p className="font-bebas text-2xl tracking-wider text-white text-center">{isAndroid ? 'Chrome에서 저장하세요' : 'Safari에서 저장하세요'}</p>
         <div className="w-full bg-gray-900 rounded-xl p-5 flex flex-col gap-4 text-sm text-gray-300 leading-relaxed">
           <div className="flex items-start gap-3">
             <span className="text-accent font-bebas text-lg leading-none">1</span>
-            <span>화면 하단 <span className="text-white font-bold">···</span> 버튼 탭</span>
+            <span>화면 {isAndroid ? '상단' : '하단'} <span className="text-white font-bold">···</span> 버튼 탭</span>
           </div>
           <div className="flex items-start gap-3">
             <span className="text-accent font-bebas text-lg leading-none">2</span>
-            <span><span className="text-white font-bold">Safari로 열기</span> 선택</span>
+            <span><span className="text-white font-bold">{isAndroid ? 'Chrome으로 열기' : 'Safari로 열기'}</span> 선택</span>
           </div>
           <div className="flex items-start gap-3">
             <span className="text-accent font-bebas text-lg leading-none">3</span>
-            <span>Safari에서 <span className="text-white font-bold">저장하기</span> 버튼 탭</span>
+            <span>브라우저에서 <span className="text-white font-bold">저장하기</span> 버튼 탭</span>
           </div>
         </div>
         <p className="text-gray-600 text-xs text-center">인스타그램 내 브라우저는 파일 저장을<br/>지원하지 않습니다</p>
       </div>
-    )}
+      )
+    })()}
     <div className="fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-start p-4 overflow-y-auto">
       <div className="w-full max-w-sm py-4">
         <div className="flex justify-between items-center mb-5">
