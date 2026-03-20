@@ -197,6 +197,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
   const [dragging, setDragging] = useState(false)
   const [fontSize, setFontSize] = useState(1)
   const [darkText, setDarkText] = useState(false)
+  const [saveMsg, setSaveMsg] = useState<string | null>(null)
   const [showEdit, setShowEdit] = useState(false)
   const [editTitle, setEditTitle] = useState(workout.title || '')
   const [editFormat, setEditFormat] = useState(workout.format || '')
@@ -375,10 +376,30 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
   const handleDownload = () => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const link = document.createElement('a')
-    link.download = `hyrox-${workout.date}.png`
-    link.href = canvas.toDataURL('image/png')
-    link.click()
+    const dataUrl = canvas.toDataURL('image/png')
+    const isInAppBrowser = /Instagram|FBAN|FBAV|Twitter|Line\//.test(navigator.userAgent)
+    if (isInAppBrowser) {
+      const win = window.open()
+      if (win) {
+        win.document.body.style.cssText = 'margin:0;background:#000'
+        const img = win.document.createElement('img')
+        img.src = dataUrl
+        img.style.cssText = 'width:100%;display:block'
+        const p = win.document.createElement('p')
+        p.style.cssText = 'color:#fff;text-align:center;font-family:sans-serif;padding:12px'
+        p.textContent = '이미지를 길게 눌러 저장하세요'
+        win.document.body.appendChild(img)
+        win.document.body.appendChild(p)
+      }
+      setSaveMsg('새 창에서 이미지를 길게 눌러 저장하세요')
+    } else {
+      const link = document.createElement('a')
+      link.download = `hyrox-${workout.date}.png`
+      link.href = dataUrl
+      link.click()
+      setSaveMsg('저장 완료!')
+    }
+    setTimeout(() => setSaveMsg(null), 3000)
   }
 
   return (
@@ -514,6 +535,11 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
             </div>
             <p className="text-center text-gray-600 text-xs mb-4">드래그해서 텍스트 위치 조정</p>
 
+            {saveMsg && (
+              <div className="mb-3 py-2 px-3 bg-accent/20 border border-accent rounded text-accent text-sm text-center font-bebas tracking-wider">
+                {saveMsg}
+              </div>
+            )}
             <div className="flex gap-3">
               <button type="button" onClick={() => fileInputRef.current?.click()}
                 className="flex-1 py-3 bg-gray-800 text-white font-bebas text-lg rounded text-center cursor-pointer hover:bg-gray-700 transition">
