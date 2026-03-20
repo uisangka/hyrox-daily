@@ -387,8 +387,9 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
     const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'))
     if (!blob) return
 
+    const isMobile = /Android|iPhone|iPad|iPod/.test(navigator.userAgent)
     const file = new File([blob], `hyrox-${workout.date}.png`, { type: 'image/png' })
-    if (navigator.share && navigator.canShare?.({ files: [file] })) {
+    if (isMobile && navigator.share && navigator.canShare?.({ files: [file] })) {
       try {
         await navigator.share({ files: [file] })
         setSaveMsg('저장 완료!')
