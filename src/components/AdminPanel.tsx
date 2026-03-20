@@ -4,6 +4,73 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Workout } from '@/types'
 
+interface PageViewRow {
+  date: string
+  count: number
+}
+
+function PageViewStats() {
+  const [rows, setRows] = useState<PageViewRow[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetch7Days = async () => {
+      const { data } = await supabase
+        .from('page_views')
+        .select('date, count')
+        .order('date', { ascending: false })
+        .limit(7)
+      setRows(data || [])
+      setLoading(false)
+    }
+    fetch7Days()
+  }, [])
+
+  const today = new Date().toLocaleDateString('en-CA')
+  const todayCount = rows.find(r => r.date === today)?.count ?? 0
+  const weekTotal = rows.reduce((sum, r) => sum + r.count, 0)
+  const maxCount = Math.max(...rows.map(r => r.count), 1)
+
+  return (
+    <div className="bg-gray-900 p-6 rounded-lg mb-8 border border-gray-800">
+      <h2 className="font-bebas text-2xl mb-5">페이지 조회수</h2>
+      {loading ? (
+        <p className="text-gray-400 text-sm">로드 중...</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="bg-gray-800 rounded-lg p-4 text-center">
+              <p className="text-gray-400 text-xs mb-1">오늘</p>
+              <p className="font-bebas text-4xl text-accent">{todayCount.toLocaleString()}</p>
+            </div>
+            <div className="bg-gray-800 rounded-lg p-4 text-center">
+              <p className="text-gray-400 text-xs mb-1">최근 7일</p>
+              <p className="font-bebas text-4xl text-white">{weekTotal.toLocaleString()}</p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            {rows.map(row => (
+              <div key={row.date} className="flex items-center gap-3">
+                <span className="text-gray-400 text-xs w-24 shrink-0">{row.date.replace(/-/g, '.')}</span>
+                <div className="flex-1 bg-gray-800 rounded-full h-2">
+                  <div
+                    className="bg-accent h-2 rounded-full transition-all"
+                    style={{ width: `${(row.count / maxCount) * 100}%` }}
+                  />
+                </div>
+                <span className="text-white text-xs w-8 text-right shrink-0">{row.count}</span>
+              </div>
+            ))}
+            {rows.length === 0 && (
+              <p className="text-gray-500 text-sm">아직 데이터가 없습니다</p>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 interface FormData {
   date: string
   title: string
@@ -219,6 +286,9 @@ export default function AdminPanel() {
             공개 페이지 보기
           </a>
         </div>
+
+        {/* Page View Stats */}
+        <PageViewStats />
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="bg-gray-900 p-6 rounded-lg mb-8 border border-gray-800">

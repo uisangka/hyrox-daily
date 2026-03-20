@@ -24,6 +24,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchWorkouts()
+    fetch('/api/track', { method: 'POST' })
   }, [])
 
   const fetchWorkouts = async () => {
