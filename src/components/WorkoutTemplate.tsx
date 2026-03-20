@@ -198,6 +198,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
   const [fontSize, setFontSize] = useState(1)
   const [darkText, setDarkText] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
+  const [saveImageUrl, setSaveImageUrl] = useState<string | null>(null)
   const [showEdit, setShowEdit] = useState(false)
   const [editTitle, setEditTitle] = useState(workout.title || '')
   const [editFormat, setEditFormat] = useState(workout.format || '')
@@ -377,6 +378,12 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
     const canvas = canvasRef.current
     if (!canvas) return
 
+    const isInstagram = /Instagram/.test(navigator.userAgent)
+    if (isInstagram) {
+      setSaveImageUrl(canvas.toDataURL('image/png'))
+      return
+    }
+
     const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'))
     if (!blob) return
 
@@ -385,6 +392,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
       try {
         await navigator.share({ files: [file] })
         setSaveMsg('저장 완료!')
+        setTimeout(() => setSaveMsg(null), 3000)
       } catch {
         // 사용자가 취소한 경우
       }
@@ -396,12 +404,23 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
       link.click()
       URL.revokeObjectURL(url)
       setSaveMsg('저장 완료!')
+      setTimeout(() => setSaveMsg(null), 3000)
     }
-    setTimeout(() => setSaveMsg(null), 3000)
   }
 
   return (
     <>
+    {saveImageUrl && (
+      <div className="fixed inset-0 bg-black z-[60] flex flex-col">
+        <div className="flex items-center justify-between px-4 py-3">
+          <p className="text-accent font-bebas text-xl tracking-wider">이미지를 길게 눌러 저장</p>
+          <button onClick={() => setSaveImageUrl(null)} className="text-gray-400 hover:text-white text-3xl leading-none">×</button>
+        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={saveImageUrl} alt="workout" className="w-full flex-1 object-contain" />
+        <p className="text-center text-gray-500 text-sm py-3">위 이미지를 길게 누른 뒤 &quot;사진 저장&quot; 선택</p>
+      </div>
+    )}
     <div className="fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-start p-4 overflow-y-auto">
       <div className="w-full max-w-sm py-4">
         <div className="flex justify-between items-center mb-5">
