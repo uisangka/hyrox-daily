@@ -411,14 +411,24 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
   return (
     <>
     {saveImageUrl && (
-      <div className="fixed inset-0 bg-black z-[60] flex flex-col">
-        <div className="flex items-center justify-between px-4 py-3">
-          <p className="text-accent font-bebas text-xl tracking-wider">이미지를 길게 눌러 저장</p>
-          <button onClick={() => setSaveImageUrl(null)} className="text-gray-400 hover:text-white text-3xl leading-none">×</button>
+      <div className="fixed inset-0 bg-black z-[60] flex flex-col items-center justify-center p-6 gap-6">
+        <button onClick={() => setSaveImageUrl(null)} className="absolute top-4 right-4 text-gray-400 hover:text-white text-3xl leading-none">×</button>
+        <p className="font-bebas text-2xl tracking-wider text-white text-center">Safari에서 저장하세요</p>
+        <div className="w-full bg-gray-900 rounded-xl p-5 flex flex-col gap-4 text-sm text-gray-300 leading-relaxed">
+          <div className="flex items-start gap-3">
+            <span className="text-accent font-bebas text-lg leading-none">1</span>
+            <span>화면 하단 <span className="text-white font-bold">···</span> 버튼 탭</span>
+          </div>
+          <div className="flex items-start gap-3">
+            <span className="text-accent font-bebas text-lg leading-none">2</span>
+            <span><span className="text-white font-bold">Safari로 열기</span> 선택</span>
+          </div>
+          <div className="flex items-start gap-3">
+            <span className="text-accent font-bebas text-lg leading-none">3</span>
+            <span>Safari에서 <span className="text-white font-bold">저장하기</span> 버튼 탭</span>
+          </div>
         </div>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={saveImageUrl} alt="workout" className="w-full flex-1 object-contain" />
-        <p className="text-center text-gray-500 text-sm py-3">위 이미지를 길게 누른 뒤 &quot;사진 저장&quot; 선택</p>
+        <p className="text-gray-600 text-xs text-center">인스타그램 내 브라우저는 파일 저장을<br/>지원하지 않습니다</p>
       </div>
     )}
     <div className="fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-start p-4 overflow-y-auto">
