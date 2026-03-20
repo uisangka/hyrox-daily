@@ -398,12 +398,10 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
         // 사용자가 취소한 경우
       }
     } else {
-      const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.download = `hyrox-${workout.date}.png`
-      link.href = url
+      link.href = canvas.toDataURL('image/png')
       link.click()
-      URL.revokeObjectURL(url)
       setSaveMsg('저장 완료!')
       setTimeout(() => setSaveMsg(null), 3000)
     }
