@@ -198,7 +198,6 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
   const [fontSize, setFontSize] = useState(1)
   const [darkText, setDarkText] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
-  const [saveImageUrl, setSaveImageUrl] = useState<string | null>(null)
   const [showEdit, setShowEdit] = useState(false)
   const [editTitle, setEditTitle] = useState(workout.title || '')
   const [editFormat, setEditFormat] = useState(workout.format || '')
@@ -374,35 +373,35 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
     reader.readAsDataURL(file)
   }
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const dataUrl = canvas.toDataURL('image/png')
-    const isInAppBrowser = /Instagram|FBAN|FBAV|Twitter|Line\//.test(navigator.userAgent)
-    if (isInAppBrowser) {
-      setSaveImageUrl(dataUrl)
+
+    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'))
+    if (!blob) return
+
+    const file = new File([blob], `hyrox-${workout.date}.png`, { type: 'image/png' })
+    if (navigator.share && navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file] })
+        setSaveMsg('저장 완료!')
+      } catch {
+        // 사용자가 취소한 경우
+      }
     } else {
+      const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.download = `hyrox-${workout.date}.png`
-      link.href = dataUrl
+      link.href = url
       link.click()
+      URL.revokeObjectURL(url)
       setSaveMsg('저장 완료!')
-      setTimeout(() => setSaveMsg(null), 3000)
     }
+    setTimeout(() => setSaveMsg(null), 3000)
   }
 
   return (
     <>
-    {saveImageUrl && (
-      <div className="fixed inset-0 bg-black z-[60] flex flex-col items-center justify-center p-4">
-        <p className="text-white font-bebas text-xl tracking-wider mb-4">이미지를 길게 눌러 저장하세요</p>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={saveImageUrl} alt="workout" className="w-full max-w-sm rounded" />
-        <button onClick={() => setSaveImageUrl(null)} className="mt-6 py-3 px-8 bg-gray-800 text-white font-bebas text-lg rounded hover:bg-gray-700 transition">
-          닫기
-        </button>
-      </div>
-    )}
     <div className="fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-start p-4 overflow-y-auto">
       <div className="w-full max-w-sm py-4">
         <div className="flex justify-between items-center mb-5">
