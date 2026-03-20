@@ -422,7 +422,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
           </div>
           <div className="flex items-start gap-3">
             <span className="text-accent font-bebas text-lg leading-none">2</span>
-            <span><span className="text-white font-bold">{isAndroid ? 'Chrome으로 열기' : 'Safari로 열기'}</span> 선택</span>
+            <span><span className="text-white font-bold">{isAndroid ? '삼성 인터넷 또는 Chrome으로 열기' : 'Safari로 열기'}</span> 선택</span>
           </div>
           <div className="flex items-start gap-3">
             <span className="text-accent font-bebas text-lg leading-none">3</span>
