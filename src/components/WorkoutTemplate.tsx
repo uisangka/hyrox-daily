@@ -198,6 +198,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
   const [fontSize, setFontSize] = useState(1)
   const [darkText, setDarkText] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
+  const [saveImageUrl, setSaveImageUrl] = useState<string | null>(null)
   const [showEdit, setShowEdit] = useState(false)
   const [editTitle, setEditTitle] = useState(workout.title || '')
   const [editFormat, setEditFormat] = useState(workout.format || '')
@@ -379,30 +380,29 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
     const dataUrl = canvas.toDataURL('image/png')
     const isInAppBrowser = /Instagram|FBAN|FBAV|Twitter|Line\//.test(navigator.userAgent)
     if (isInAppBrowser) {
-      const win = window.open()
-      if (win) {
-        win.document.body.style.cssText = 'margin:0;background:#000'
-        const img = win.document.createElement('img')
-        img.src = dataUrl
-        img.style.cssText = 'width:100%;display:block'
-        const p = win.document.createElement('p')
-        p.style.cssText = 'color:#fff;text-align:center;font-family:sans-serif;padding:12px'
-        p.textContent = '이미지를 길게 눌러 저장하세요'
-        win.document.body.appendChild(img)
-        win.document.body.appendChild(p)
-      }
-      setSaveMsg('새 창에서 이미지를 길게 눌러 저장하세요')
+      setSaveImageUrl(dataUrl)
     } else {
       const link = document.createElement('a')
       link.download = `hyrox-${workout.date}.png`
       link.href = dataUrl
       link.click()
       setSaveMsg('저장 완료!')
+      setTimeout(() => setSaveMsg(null), 3000)
     }
-    setTimeout(() => setSaveMsg(null), 3000)
   }
 
   return (
+    <>
+    {saveImageUrl && (
+      <div className="fixed inset-0 bg-black z-[60] flex flex-col items-center justify-center p-4">
+        <p className="text-white font-bebas text-xl tracking-wider mb-4">이미지를 길게 눌러 저장하세요</p>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={saveImageUrl} alt="workout" className="w-full max-w-sm rounded" />
+        <button onClick={() => setSaveImageUrl(null)} className="mt-6 py-3 px-8 bg-gray-800 text-white font-bebas text-lg rounded hover:bg-gray-700 transition">
+          닫기
+        </button>
+      </div>
+    )}
     <div className="fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-start p-4 overflow-y-auto">
       <div className="w-full max-w-sm py-4">
         <div className="flex justify-between items-center mb-5">
@@ -554,5 +554,6 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
         )}
       </div>
     </div>
+    </>
   )
 }
