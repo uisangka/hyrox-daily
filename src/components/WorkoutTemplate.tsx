@@ -223,9 +223,9 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
     const tw = ctx.measureText('TODAY ').width
     ctx.fillStyle = '#E5FE3D'
     ctx.fillText('WORKOUT', 56 + tw, 68)
-    ctx.font = '300 22px -apple-system, sans-serif'
-    ctx.fillStyle = 'rgba(255,255,255,0.38)'
-    ctx.fillText(formatDate(w.date), 58, 96)
+    ctx.font = '600 28px -apple-system, sans-serif'
+    ctx.fillStyle = 'rgba(255,255,255,0.75)'
+    ctx.fillText(formatDate(w.date), 58, 100)
     ctx.font = `700 32px "Bebas Neue", Impact, sans-serif`
     ctx.fillStyle = 'rgba(255,255,255,0.75)'
     ctx.fillText('@HYROX_DAILY', 56, H - 32)
