@@ -445,7 +445,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
     ctx.fillStyle = 'rgba(255,255,255,0.75)'
     ctx.fillText('@HYROX_DAILY', 56, H - 32)
 
-    // 워터마크 (difference 트릭으로 흰색 반전 후 그리기)
+    // 워터마크 (흰색으로 채우고 원본 알파 마스크로 클리핑)
     await new Promise<void>((resolve) => {
       const symbol = new Image()
       symbol.onload = () => {
@@ -453,10 +453,10 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
         const off = document.createElement('canvas')
         off.width = sw; off.height = sh
         const offCtx = off.getContext('2d')!
-        offCtx.drawImage(symbol, 0, 0, sw, sh)
-        offCtx.globalCompositeOperation = 'difference'
         offCtx.fillStyle = 'white'
         offCtx.fillRect(0, 0, sw, sh)
+        offCtx.globalCompositeOperation = 'destination-in'
+        offCtx.drawImage(symbol, 0, 0, sw, sh)
         ctx.globalAlpha = 0.35
         ctx.drawImage(off, W - sw - 40, 28, sw, sh)
         ctx.globalAlpha = 1
@@ -472,10 +472,10 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
         const off = document.createElement('canvas')
         off.width = lw; off.height = lh
         const offCtx = off.getContext('2d')!
-        offCtx.drawImage(logo, 0, 0, lw, lh)
-        offCtx.globalCompositeOperation = 'difference'
         offCtx.fillStyle = 'white'
         offCtx.fillRect(0, 0, lw, lh)
+        offCtx.globalCompositeOperation = 'destination-in'
+        offCtx.drawImage(logo, 0, 0, lw, lh)
         ctx.globalAlpha = 0.3
         ctx.drawImage(off, (W - lw) / 2, H - lh - 28, lw, lh)
         ctx.globalAlpha = 1
