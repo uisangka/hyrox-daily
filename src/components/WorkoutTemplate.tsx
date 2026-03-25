@@ -445,6 +445,32 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
     ctx.fillStyle = 'rgba(255,255,255,0.75)'
     ctx.fillText('@HYROX_DAILY', 56, H - 32)
 
+    // 워터마크
+    await new Promise<void>((resolve) => {
+      const symbol = new Image()
+      symbol.onload = () => {
+        const sw = 44, sh = 44
+        ctx.globalAlpha = 0.25
+        ctx.drawImage(symbol, W - sw - 40, 28, sw, sh)
+        ctx.globalAlpha = 1
+        resolve()
+      }
+      symbol.onerror = () => resolve()
+      symbol.src = '/lagom-symbol.png'
+    })
+    await new Promise<void>((resolve) => {
+      const logo = new Image()
+      logo.onload = () => {
+        const lw = 260, lh = 42
+        ctx.globalAlpha = 0.2
+        ctx.drawImage(logo, (W - lw) / 2, H - lh - 28, lw, lh)
+        ctx.globalAlpha = 1
+        resolve()
+      }
+      logo.onerror = () => resolve()
+      logo.src = '/lagom-logo.png'
+    })
+
     const isInstagram = /Instagram/.test(navigator.userAgent)
     if (isInstagram) {
       setSaveImageUrl(offscreen.toDataURL('image/png'))
