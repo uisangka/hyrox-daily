@@ -13,7 +13,6 @@ const H = 1350
 
 type OverlayId = 'none' | 'soft' | 'strong' | 'frame' | 'bw'
 type TextStyleId = 'minimal' | 'bold' | 'editorial' | 'clean'
-type FontScale = 0.6 | 0.8 | 1 | 1.2 | 1.5
 
 const OVERLAYS: { id: OverlayId; label: string }[] = [
   { id: 'none',   label: '없음'   },
@@ -184,19 +183,36 @@ function applyTextStyle(
   }
 }
 
+const TEMPLATE_KEY = 'hyrox_template'
+
+function loadTemplate() {
+  try {
+    const raw = localStorage.getItem(TEMPLATE_KEY)
+    if (!raw) return null
+    return JSON.parse(raw) as {
+      overlay: OverlayId
+      textStyle: TextStyleId
+      textPos: { x: number; y: number }
+      fontSize: number
+      darkText: boolean
+    }
+  } catch { return null }
+}
+
 export default function WorkoutTemplate({ workout, onClose }: Props) {
+  const saved = loadTemplate()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const previewRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const drawIdRef = useRef(0)
   const bgCacheRef = useRef<ImageData | null>(null)
   const [uploadedImage, setUploadedImage] = useState<string | null>(null)
-  const [overlay, setOverlay] = useState<OverlayId>('soft')
-  const [textStyle, setTextStyle] = useState<TextStyleId>('minimal')
-  const [textPos, setTextPos] = useState({ x: 0.052, y: 0.72 })
+  const [overlay, setOverlay] = useState<OverlayId>(saved?.overlay ?? 'soft')
+  const [textStyle, setTextStyle] = useState<TextStyleId>(saved?.textStyle ?? 'minimal')
+  const [textPos, setTextPos] = useState(saved?.textPos ?? { x: 0.052, y: 0.72 })
   const [dragging, setDragging] = useState(false)
-  const [fontSize, setFontSize] = useState(1)
-  const [darkText, setDarkText] = useState(false)
+  const [fontSize, setFontSize] = useState(saved?.fontSize ?? 1)
+  const [darkText, setDarkText] = useState(saved?.darkText ?? false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
   const [saveImageUrl, setSaveImageUrl] = useState<string | null>(null)
   const [showEdit, setShowEdit] = useState(false)
@@ -204,11 +220,10 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
   const [editFormat, setEditFormat] = useState(workout.format || '')
   const [editExercises, setEditExercises] = useState(workout.exercises.join('\n'))
 
-  const editedWorkout = {
-    ...workout,
-    title: editTitle,
-    format: editFormat,
-    exercises: editExercises.split('\n'),
+  const saveTemplate = () => {
+    localStorage.setItem(TEMPLATE_KEY, JSON.stringify({ overlay, textStyle, textPos, fontSize, darkText }))
+    setSaveMsg('템플릿 저장됨!')
+    setTimeout(() => setSaveMsg(null), 2000)
   }
 
   const drawText = useCallback((ts: TextStyleId, pos: { x: number; y: number }, w: typeof workout, scale: number, isDark: boolean) => {
@@ -372,6 +387,62 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
     const reader = new FileReader()
     reader.onload = (ev) => setUploadedImage(ev.target?.result as string)
     reader.readAsDataURL(file)
+  }
+
+  const handleTextOnly = async () => {
+    const offscreen = document.createElement('canvas')
+    offscreen.width = W
+    offscreen.height = H
+    const ctx = offscreen.getContext('2d')
+    if (!ctx) return
+
+    try {
+      const font = new FontFace('Bebas Neue', 'url(https://fonts.gstatic.com/s/bebasneu/v14/JTUSjIg69CK48gW7PXooxW5rygbi49c.woff2)')
+      await font.load()
+      document.fonts.add(font)
+    } catch {}
+
+    // 투명 배경에 텍스트만 그리기
+    ctx.clearRect(0, 0, W, H)
+    const w = { ...workout, title: editTitle, format: editFormat, exercises: editExercises.split('\n') }
+    applyTextStyle(ctx, w, textStyle, textPos.x * W, textPos.y * H, fontSize, darkText)
+    ctx.shadowBlur = 0
+    ctx.font = `700 46px "Bebas Neue", Impact, sans-serif`
+    ctx.fillStyle = 'white'
+    ctx.fillText('TODAY', 56, 68)
+    const tw = ctx.measureText('TODAY ').width
+    ctx.fillStyle = '#E5FE3D'
+    ctx.fillText('WORKOUT', 56 + tw, 68)
+    ctx.font = '600 28px -apple-system, sans-serif'
+    ctx.fillStyle = 'rgba(255,255,255,0.75)'
+    ctx.fillText(formatDate(w.date), 58, 100)
+    ctx.font = `700 32px "Bebas Neue", Impact, sans-serif`
+    ctx.fillStyle = 'rgba(255,255,255,0.75)'
+    ctx.fillText('@HYROX_DAILY', 56, H - 32)
+
+    const isInstagram = /Instagram/.test(navigator.userAgent)
+    if (isInstagram) {
+      setSaveImageUrl(offscreen.toDataURL('image/png'))
+      return
+    }
+
+    const blob = await new Promise<Blob | null>(resolve => offscreen.toBlob(resolve, 'image/png'))
+    if (!blob) return
+
+    const isMobile = /Android|iPhone|iPad|iPod/.test(navigator.userAgent)
+    const file = new File([blob], `hyrox-text-${workout.date}.png`, { type: 'image/png' })
+    if (isMobile && navigator.share && navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file] })
+      } catch {}
+    } else {
+      const link = document.createElement('a')
+      link.download = `hyrox-text-${workout.date}.png`
+      link.href = offscreen.toDataURL('image/png')
+      link.click()
+    }
+    setSaveMsg('텍스트 저장 완료!')
+    setTimeout(() => setSaveMsg(null), 3000)
   }
 
   const handleDownload = async () => {
@@ -570,10 +641,20 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
                 {saveMsg}
               </div>
             )}
-            <div className="flex gap-3">
+            <div className="flex gap-2 mb-2">
               <button type="button" onClick={() => fileInputRef.current?.click()}
                 className="flex-1 py-3 bg-gray-800 text-white font-bebas text-lg rounded text-center cursor-pointer hover:bg-gray-700 transition">
                 사진 변경
+              </button>
+              <button onClick={saveTemplate}
+                className="flex-1 py-3 bg-gray-800 text-gray-300 font-bebas text-lg rounded hover:bg-gray-700 transition">
+                템플릿 저장
+              </button>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={handleTextOnly}
+                className="flex-1 py-3 bg-gray-700 text-white font-bebas text-lg rounded hover:bg-gray-600 transition">
+                글자만 저장
               </button>
               <button onClick={handleDownload}
                 className="flex-1 py-3 bg-accent text-dark font-bebas text-lg rounded hover:bg-yellow-400 transition">
