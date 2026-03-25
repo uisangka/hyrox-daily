@@ -213,6 +213,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
   const [dragging, setDragging] = useState(false)
   const [fontSize, setFontSize] = useState(saved?.fontSize ?? 1)
   const [darkText, setDarkText] = useState(saved?.darkText ?? false)
+  const [textOnlyMode, setTextOnlyMode] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
   const [saveImageUrl, setSaveImageUrl] = useState<string | null>(null)
   const [showEdit, setShowEdit] = useState(false)
@@ -332,6 +333,23 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
     bgCacheRef.current = ctx.getImageData(0, 0, W, H)
   }, [])
 
+  const drawDarkBg = useCallback(async () => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    canvas.width = W
+    canvas.height = H
+    try {
+      const font = new FontFace('Bebas Neue', 'url(https://fonts.gstatic.com/s/bebasneu/v14/JTUSjIg69CK48gW7PXooxW5rygbi49c.woff2)')
+      await font.load()
+      document.fonts.add(font)
+    } catch {}
+    ctx.fillStyle = '#0c0c0c'
+    ctx.fillRect(0, 0, W, H)
+    bgCacheRef.current = ctx.getImageData(0, 0, W, H)
+  }, [])
+
   // 이미지/오버레이 변경 시 배경 재생성 후 텍스트 그리기
   useEffect(() => {
     if (!uploadedImage) return
@@ -339,9 +357,16 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
     drawBg(uploadedImage, overlay).then(() => drawText(textStyle, textPos, w, fontSize, darkText))
   }, [uploadedImage, overlay, drawBg])
 
+  // 텍스트 전용 모드 진입 시 어두운 배경 생성
+  useEffect(() => {
+    if (!textOnlyMode || uploadedImage) return
+    const w = { ...workout, title: editTitle, format: editFormat, exercises: editExercises.split('\n') }
+    drawDarkBg().then(() => drawText(textStyle, textPos, w, fontSize, darkText))
+  }, [textOnlyMode, drawDarkBg])
+
   // 텍스트 관련 변경 시 배경 재사용하고 텍스트만 다시 그리기
   useEffect(() => {
-    if (!uploadedImage || !bgCacheRef.current) return
+    if ((!uploadedImage && !textOnlyMode) || !bgCacheRef.current) return
     const w = { ...workout, title: editTitle, format: editFormat, exercises: editExercises.split('\n') }
     drawText(textStyle, textPos, w, fontSize, darkText)
   }, [textStyle, textPos, fontSize, darkText, editTitle, editFormat, editExercises, drawText])
@@ -513,7 +538,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
 
         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
 
-        {!uploadedImage ? (
+        {!uploadedImage && !textOnlyMode ? (
           <>
             <canvas ref={canvasRef} className="hidden" />
             <button
@@ -531,15 +556,15 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
                 {saveMsg}
               </div>
             )}
-            <button onClick={handleTextOnly}
+            <button onClick={() => setTextOnlyMode(true)}
               className="w-full py-3 bg-gray-800 text-white font-bebas text-lg rounded hover:bg-gray-700 transition">
               글자만 저장 (투명 배경)
             </button>
           </>
         ) : (
           <>
-            {/* 오버레이 선택 */}
-            <div className="mb-3">
+            {/* 오버레이 선택 — 사진 있을 때만 */}
+            {uploadedImage && <div className="mb-3">
               <p className="text-xs text-gray-500 mb-2 tracking-widest uppercase">오버레이</p>
               <div className="grid grid-cols-5 gap-2">
                 {OVERLAYS.map(o => (
@@ -551,7 +576,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
                   </button>
                 ))}
               </div>
-            </div>
+            </div>}
 
             {/* 텍스트 스타일 선택 */}
             <div className="mb-3">
@@ -651,10 +676,17 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
               </div>
             )}
             <div className="flex gap-2 mb-2">
-              <button type="button" onClick={() => fileInputRef.current?.click()}
-                className="flex-1 py-3 bg-gray-800 text-white font-bebas text-lg rounded text-center cursor-pointer hover:bg-gray-700 transition">
-                사진 변경
-              </button>
+              {textOnlyMode ? (
+                <button type="button" onClick={() => setTextOnlyMode(false)}
+                  className="flex-1 py-3 bg-gray-800 text-white font-bebas text-lg rounded text-center cursor-pointer hover:bg-gray-700 transition">
+                  ← 돌아가기
+                </button>
+              ) : (
+                <button type="button" onClick={() => fileInputRef.current?.click()}
+                  className="flex-1 py-3 bg-gray-800 text-white font-bebas text-lg rounded text-center cursor-pointer hover:bg-gray-700 transition">
+                  사진 변경
+                </button>
+              )}
               <button onClick={saveTemplate}
                 className="flex-1 py-3 bg-gray-800 text-gray-300 font-bebas text-lg rounded hover:bg-gray-700 transition">
                 템플릿 저장
@@ -665,10 +697,12 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
                 className="flex-1 py-3 bg-gray-700 text-white font-bebas text-lg rounded hover:bg-gray-600 transition">
                 글자만 저장
               </button>
-              <button onClick={handleDownload}
-                className="flex-1 py-3 bg-accent text-dark font-bebas text-lg rounded hover:bg-yellow-400 transition">
-                저장하기
-              </button>
+              {!textOnlyMode && (
+                <button onClick={handleDownload}
+                  className="flex-1 py-3 bg-accent text-dark font-bebas text-lg rounded hover:bg-yellow-400 transition">
+                  저장하기
+                </button>
+              )}
             </div>
           </>
         )}
