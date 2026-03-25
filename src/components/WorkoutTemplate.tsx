@@ -519,12 +519,21 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="w-full bg-gray-900 rounded-lg mb-4 flex flex-col items-center justify-center border-2 border-dashed border-gray-700 hover:border-accent transition cursor-pointer"
+              className="w-full bg-gray-900 rounded-lg mb-3 flex flex-col items-center justify-center border-2 border-dashed border-gray-700 hover:border-accent transition cursor-pointer"
               style={{ aspectRatio: '4/5' }}
             >
               <span className="text-5xl mb-4">📷</span>
               <span className="text-white font-bebas text-xl">사진 선택</span>
               <span className="text-gray-500 text-sm mt-1">탭하여 업로드</span>
+            </button>
+            {saveMsg && (
+              <div className="mb-3 py-2 px-3 bg-accent/20 border border-accent rounded text-accent text-sm text-center font-bebas tracking-wider">
+                {saveMsg}
+              </div>
+            )}
+            <button onClick={handleTextOnly}
+              className="w-full py-3 bg-gray-800 text-white font-bebas text-lg rounded hover:bg-gray-700 transition">
+              글자만 저장 (투명 배경)
             </button>
           </>
         ) : (
