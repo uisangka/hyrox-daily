@@ -197,7 +197,7 @@ export default function Home() {
         {todayWorkouts.length === 0 && !error && (
           <section className="mb-20 text-center py-16 border border-gray-800 rounded-lg">
             <p className="font-bebas text-4xl text-gray-500 mb-2">REST DAY</p>
-            <p className="text-gray-600 text-sm">쉬는 것도 훈련입니다</p>
+            <p className="text-gray-600 text-sm">다음 레이스를 위한 연료 충전 중</p>
           </section>
         )}
 
