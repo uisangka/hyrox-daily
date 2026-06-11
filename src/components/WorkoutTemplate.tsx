@@ -12,7 +12,8 @@ const W = 1080
 const H = 1350
 
 type OverlayId = 'none' | 'soft' | 'strong' | 'frame' | 'bw'
-type TextStyleId = 'minimal' | 'bold' | 'editorial' | 'clean'
+type TextStyleId = 'minimal' | 'bold' | 'editorial' | 'clean' | 'outline' | 'poster' | 'box' | 'mono'
+type FontId = 'bebas' | 'anton' | 'archivo' | 'oswald' | 'blackhan' | 'dohyeon'
 
 const OVERLAYS: { id: OverlayId; label: string }[] = [
   { id: 'none',   label: '없음'   },
@@ -27,6 +28,31 @@ const TEXT_STYLES: { id: TextStyleId; label: string }[] = [
   { id: 'bold',      label: 'BOLD'      },
   { id: 'editorial', label: 'EDITORIAL' },
   { id: 'clean',     label: 'CLEAN'     },
+  { id: 'outline',   label: 'OUTLINE'   },
+  { id: 'poster',    label: 'POSTER'    },
+  { id: 'box',       label: 'BOX'       },
+  { id: 'mono',      label: 'MONO'      },
+]
+
+const FONTS: { id: FontId; label: string; family: string }[] = [
+  { id: 'bebas',    label: 'BEBAS',   family: '"Bebas Neue", Impact, sans-serif' },
+  { id: 'anton',    label: 'ANTON',   family: '"Anton", Impact, sans-serif' },
+  { id: 'archivo',  label: 'ARCHIVO', family: '"Archivo Black", sans-serif' },
+  { id: 'oswald',   label: 'OSWALD',  family: '"Oswald", sans-serif' },
+  { id: 'blackhan', label: '블랙한',   family: '"Black Han Sans", sans-serif' },
+  { id: 'dohyeon',  label: '도현체',   family: '"Do Hyeon", sans-serif' },
+]
+
+const GOOGLE_FONTS_URL =
+  'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Anton&family=Archivo+Black&family=Oswald:wght@500;700&family=Black+Han+Sans&family=Do+Hyeon&display=swap'
+
+const ACCENTS: { id: string; color: string }[] = [
+  { id: 'yellow', color: '#E5FE3D' },
+  { id: 'white',  color: '#FFFFFF' },
+  { id: 'red',    color: '#FF3B30' },
+  { id: 'orange', color: '#FF9F0A' },
+  { id: 'cyan',   color: '#00E5FF' },
+  { id: 'pink',   color: '#FF2D78' },
 ]
 
 function parseExercises(exercises: string[]) {
@@ -46,7 +72,34 @@ function formatDate(dateStr: string) {
   return `${year}.${month}.${day}`
 }
 
-function applyOverlay(ctx: CanvasRenderingContext2D, overlay: OverlayId) {
+function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number) {
+  const words = text.split(' ')
+  const lines: string[] = []
+  let line = ''
+  for (const word of words) {
+    const test = line ? line + ' ' + word : word
+    if (ctx.measureText(test).width > maxWidth && line) {
+      lines.push(line)
+      line = word
+    } else {
+      line = test
+    }
+  }
+  if (line) lines.push(line)
+  return lines
+}
+
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.arcTo(x + w, y, x + w, y + h, r)
+  ctx.arcTo(x + w, y + h, x, y + h, r)
+  ctx.arcTo(x, y + h, x, y, r)
+  ctx.arcTo(x, y, x + w, y, r)
+  ctx.closePath()
+}
+
+function applyOverlay(ctx: CanvasRenderingContext2D, overlay: OverlayId, accent: string) {
   if (overlay === 'none') {
     ctx.shadowColor = 'rgba(0,0,0,0.9)'
     ctx.shadowBlur = 20
@@ -73,7 +126,7 @@ function applyOverlay(ctx: CanvasRenderingContext2D, overlay: OverlayId) {
   } else if (overlay === 'frame') {
     ctx.fillStyle = 'rgba(12,12,12,0.97)'
     ctx.fillRect(0, H - 420, W, 420)
-    ctx.fillStyle = '#E5FE3D'
+    ctx.fillStyle = accent
     ctx.fillRect(0, H - 420, W, 2)
   }
 }
@@ -85,18 +138,20 @@ function applyTextStyle(
   tx: number,
   ty: number,
   scale: number = 1,
-  dark: boolean = false
+  dark: boolean = false,
+  font: string = '"Bebas Neue", Impact, sans-serif',
+  accent: string = '#E5FE3D'
 ) {
   const groups = parseExercises(workout.exercises)
   let y = ty
   const s = scale
   const titleColor = dark ? 'rgba(0,0,0,0.92)' : 'rgba(255,255,255,0.95)'
-  const accentColor = dark ? '#b8a800' : '#E5FE3D'
+  const accentColor = dark && accent === '#E5FE3D' ? '#b8a800' : accent
   const bodyColor = dark ? 'rgba(0,0,0,0.65)' : 'rgba(255,255,255,0.6)'
 
   if (style === 'minimal') {
     if (workout.title) {
-      ctx.font = `700 ${Math.round(56*s)}px "Bebas Neue", Impact, sans-serif`
+      ctx.font = `700 ${Math.round(56*s)}px ${font}`
       ctx.fillStyle = titleColor
       ctx.fillText(workout.title, tx, y); y += Math.round(64*s)
     }
@@ -115,20 +170,14 @@ function applyTextStyle(
 
   } else if (style === 'bold') {
     if (workout.title) {
-      ctx.font = `700 ${Math.round(120*s)}px "Bebas Neue", Impact, sans-serif`
+      ctx.font = `700 ${Math.round(120*s)}px ${font}`
       ctx.fillStyle = dark ? 'rgba(0,0,0,0.92)' : 'white'
-      const words = workout.title.split(' ')
-      let line = ''
-      for (const word of words) {
-        const test = line + (line ? ' ' : '') + word
-        if (ctx.measureText(test).width > W - tx - 56 && line) {
-          ctx.fillText(line, tx, y); y += Math.round(124*s); line = word
-        } else line = test
+      for (const line of wrapText(ctx, workout.title, W - tx - 56)) {
+        ctx.fillText(line, tx, y); y += Math.round(124*s)
       }
-      if (line) { ctx.fillText(line, tx, y); y += Math.round(124*s) }
     }
     if (workout.format) {
-      ctx.font = `700 ${Math.round(52*s)}px "Bebas Neue", Impact, sans-serif`
+      ctx.font = `700 ${Math.round(52*s)}px ${font}`
       ctx.fillStyle = accentColor
       ctx.fillText(workout.format, tx, y); y += Math.round(62*s)
     }
@@ -145,7 +194,7 @@ function applyTextStyle(
     ctx.fillStyle = accentColor
     ctx.fillRect(tx, y - 14, 2, Math.round(240*s))
     if (workout.title) {
-      ctx.font = `700 ${Math.round(70*s)}px "Bebas Neue", Impact, sans-serif`
+      ctx.font = `700 ${Math.round(70*s)}px ${font}`
       ctx.fillStyle = dark ? 'rgba(0,0,0,0.92)' : 'white'
       ctx.fillText(workout.title, x, y); y += Math.round(78*s)
     }
@@ -164,7 +213,7 @@ function applyTextStyle(
 
   } else if (style === 'clean') {
     if (workout.title) {
-      ctx.font = `700 ${Math.round(82*s)}px "Bebas Neue", Impact, sans-serif`
+      ctx.font = `700 ${Math.round(82*s)}px ${font}`
       ctx.fillStyle = dark ? 'rgba(0,0,0,0.92)' : 'white'
       ctx.fillText(workout.title, tx, y); y += Math.round(90*s)
     }
@@ -176,6 +225,120 @@ function applyTextStyle(
     y += 8
     ctx.font = `300 ${Math.round(26*s)}px -apple-system, sans-serif`
     ctx.fillStyle = dark ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.75)'
+    for (const group of groups) {
+      for (const ex of group) { if (y > H - 60) break; ctx.fillText(ex, tx, y); y += Math.round(34*s) }
+      y += Math.round(12*s)
+    }
+
+  } else if (style === 'outline') {
+    if (workout.title) {
+      ctx.font = `700 ${Math.round(116*s)}px ${font}`
+      ctx.lineWidth = Math.max(2, Math.round(3*s))
+      ctx.strokeStyle = dark ? 'rgba(0,0,0,0.92)' : 'white'
+      for (const line of wrapText(ctx, workout.title.toUpperCase(), W - tx - 56)) {
+        if (y > H - 80) break
+        ctx.strokeText(line, tx, y); y += Math.round(120*s)
+      }
+    }
+    if (workout.format) {
+      ctx.font = `700 ${Math.round(46*s)}px ${font}`
+      ctx.fillStyle = accentColor
+      ctx.fillText(workout.format, tx, y); y += Math.round(56*s)
+    }
+    ctx.font = `400 ${Math.round(28*s)}px -apple-system, sans-serif`
+    ctx.fillStyle = dark ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.82)'
+    for (const group of groups) {
+      for (const ex of group) { if (y > H - 60) break; ctx.fillText(ex, tx, y); y += Math.round(38*s) }
+      y += Math.round(12*s)
+    }
+
+  } else if (style === 'poster') {
+    if (workout.title) {
+      ctx.font = `700 ${Math.round(140*s)}px ${font}`
+      ctx.fillStyle = dark ? 'rgba(0,0,0,0.92)' : 'white'
+      for (const word of workout.title.toUpperCase().split(' ')) {
+        if (y > H - 80) break
+        ctx.fillText(word, tx, y, W - tx - 56); y += Math.round(136*s)
+      }
+      ctx.fillStyle = accentColor
+      ctx.fillRect(tx + 6, y - Math.round(96*s), Math.round(120*s), Math.round(8*s))
+      y += Math.round(4*s)
+    }
+    if (workout.format) {
+      ctx.font = `700 ${Math.round(48*s)}px ${font}`
+      ctx.fillStyle = accentColor
+      ctx.fillText(workout.format, tx, y); y += Math.round(58*s)
+    }
+    ctx.font = `400 ${Math.round(28*s)}px -apple-system, sans-serif`
+    ctx.fillStyle = dark ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.82)'
+    for (const group of groups) {
+      for (const ex of group) { if (y > H - 60) break; ctx.fillText(ex, tx, y); y += Math.round(38*s) }
+      y += Math.round(12*s)
+    }
+
+  } else if (style === 'box') {
+    ctx.shadowBlur = 0
+    const titleFontStr = `700 ${Math.round(60*s)}px ${font}`
+    const formatFontStr = `400 ${Math.round(26*s)}px -apple-system, sans-serif`
+    const bodyFontStr = `300 ${Math.round(24*s)}px -apple-system, sans-serif`
+    const maxTextW = W - tx - 80
+    const lines: { text: string; font: string; color: string; gap: number }[] = []
+    if (workout.title) {
+      ctx.font = titleFontStr
+      for (const l of wrapText(ctx, workout.title, maxTextW)) {
+        lines.push({ text: l, font: titleFontStr, color: titleColor, gap: Math.round(68*s) })
+      }
+    }
+    if (workout.format) {
+      lines.push({ text: workout.format, font: formatFontStr, color: accentColor, gap: Math.round(42*s) })
+    }
+    for (const group of groups) {
+      for (const ex of group) {
+        lines.push({ text: ex, font: bodyFontStr, color: dark ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.85)', gap: Math.round(32*s) })
+      }
+      lines.push({ text: '', font: bodyFontStr, color: '', gap: Math.round(8*s) })
+    }
+    while (lines.length && lines[lines.length - 1].text === '') lines.pop()
+    let boxW = 0
+    let contentH = 0
+    for (const l of lines) {
+      if (l.text) { ctx.font = l.font; boxW = Math.max(boxW, ctx.measureText(l.text).width) }
+      contentH += l.gap
+    }
+    const padX = 32
+    const boxTop = y - Math.round(54*s)
+    const boxH = contentH + Math.round(54*s) + 12
+    ctx.fillStyle = dark ? 'rgba(255,255,255,0.88)' : 'rgba(0,0,0,0.6)'
+    roundRect(ctx, tx - padX, boxTop, Math.min(boxW, maxTextW) + padX * 2, boxH, 20)
+    ctx.fill()
+    ctx.fillStyle = accentColor
+    ctx.fillRect(tx - padX, boxTop, 6, boxH)
+    for (const l of lines) {
+      if (l.text && y < H - 40) {
+        ctx.font = l.font
+        ctx.fillStyle = l.color
+        ctx.fillText(l.text, tx, y, maxTextW)
+      }
+      y += l.gap
+    }
+
+  } else if (style === 'mono') {
+    const monoFamily = 'Consolas, "Courier New", monospace'
+    if (workout.title) {
+      ctx.font = `700 ${Math.round(48*s)}px ${monoFamily}`
+      ctx.fillStyle = titleColor
+      for (const line of wrapText(ctx, workout.title, W - tx - 56)) {
+        if (y > H - 80) break
+        ctx.fillText(line, tx, y); y += Math.round(58*s)
+      }
+    }
+    if (workout.format) {
+      ctx.font = `700 ${Math.round(26*s)}px ${monoFamily}`
+      ctx.fillStyle = accentColor
+      ctx.fillText('// ' + workout.format.toUpperCase(), tx, y); y += Math.round(44*s)
+    }
+    ctx.font = `400 ${Math.round(24*s)}px ${monoFamily}`
+    ctx.fillStyle = dark ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.75)'
     for (const group of groups) {
       for (const ex of group) { if (y > H - 60) break; ctx.fillText(ex, tx, y); y += Math.round(34*s) }
       y += Math.round(12*s)
@@ -195,6 +358,8 @@ function loadTemplate() {
       textPos: { x: number; y: number }
       fontSize: number
       darkText: boolean
+      font?: FontId
+      accent?: string
     }
   } catch { return null }
 }
@@ -213,6 +378,9 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
   const [dragging, setDragging] = useState(false)
   const [fontSize, setFontSize] = useState(saved?.fontSize ?? 1)
   const [darkText, setDarkText] = useState(saved?.darkText ?? false)
+  const [fontId, setFontId] = useState<FontId>(saved?.font ?? 'bebas')
+  const [accent, setAccent] = useState(saved?.accent ?? '#E5FE3D')
+  const [fontTick, setFontTick] = useState(0)
   const [textOnlyMode, setTextOnlyMode] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
   const [saveImageUrl, setSaveImageUrl] = useState<string | null>(null)
@@ -221,19 +389,40 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
   const [editFormat, setEditFormat] = useState(workout.format || '')
   const [editExercises, setEditExercises] = useState(workout.exercises.join('\n'))
 
+  const fontFamily = FONTS.find(f => f.id === fontId)!.family
+
+  // Google Fonts 스타일시트 1회 주입
+  useEffect(() => {
+    if (document.getElementById('share-template-fonts')) return
+    const link = document.createElement('link')
+    link.id = 'share-template-fonts'
+    link.rel = 'stylesheet'
+    link.href = GOOGLE_FONTS_URL
+    document.head.appendChild(link)
+  }, [])
+
+  // 선택한 폰트 로드 완료 시 다시 그리기
+  useEffect(() => {
+    let alive = true
+    document.fonts.load(`700 100px ${fontFamily}`, '가나다 ABC 123')
+      .then(() => { if (alive) setFontTick(t => t + 1) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [fontFamily])
+
   const saveTemplate = () => {
-    localStorage.setItem(TEMPLATE_KEY, JSON.stringify({ overlay, textStyle, textPos, fontSize, darkText }))
+    localStorage.setItem(TEMPLATE_KEY, JSON.stringify({ overlay, textStyle, textPos, fontSize, darkText, font: fontId, accent }))
     setSaveMsg('템플릿 저장됨!')
     setTimeout(() => setSaveMsg(null), 2000)
   }
 
-  const drawText = useCallback((ts: TextStyleId, pos: { x: number; y: number }, w: typeof workout, scale: number, isDark: boolean) => {
+  const drawText = useCallback((ts: TextStyleId, pos: { x: number; y: number }, w: typeof workout, scale: number, isDark: boolean, family: string, accentColor: string) => {
     const canvas = canvasRef.current
     if (!canvas || !bgCacheRef.current) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
     ctx.putImageData(bgCacheRef.current, 0, 0)
-    applyTextStyle(ctx, w, ts, pos.x * W, pos.y * H, scale, isDark)
+    applyTextStyle(ctx, w, ts, pos.x * W, pos.y * H, scale, isDark, family, accentColor)
     ctx.shadowBlur = 0
     ctx.font = `700 46px "Bebas Neue", Impact, sans-serif`
     ctx.fillStyle = 'white'
@@ -249,7 +438,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
     ctx.fillText('@HYROX_DAILY', 56, H - 32)
   }, [workout])
 
-  const drawBg = useCallback(async (src: string, ov: OverlayId) => {
+  const drawBg = useCallback(async (src: string, ov: OverlayId, accentColor: string) => {
     const drawId = ++drawIdRef.current
     const canvas = canvasRef.current
     if (!canvas) return
@@ -282,7 +471,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
           }
           ctx.putImageData(imageData, 0, 0)
         }
-        applyOverlay(ctx, ov)
+        applyOverlay(ctx, ov, accentColor)
         ctx.shadowBlur = 0
         const symbol = new Image()
         symbol.onload = () => {
@@ -354,22 +543,22 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
   useEffect(() => {
     if (!uploadedImage) return
     const w = { ...workout, title: editTitle, format: editFormat, exercises: editExercises.split('\n') }
-    drawBg(uploadedImage, overlay).then(() => drawText(textStyle, textPos, w, fontSize, darkText))
-  }, [uploadedImage, overlay, drawBg])
+    drawBg(uploadedImage, overlay, accent).then(() => drawText(textStyle, textPos, w, fontSize, darkText, fontFamily, accent))
+  }, [uploadedImage, overlay, accent, drawBg])
 
   // 텍스트 전용 모드 진입 시 어두운 배경 생성
   useEffect(() => {
     if (!textOnlyMode || uploadedImage) return
     const w = { ...workout, title: editTitle, format: editFormat, exercises: editExercises.split('\n') }
-    drawDarkBg().then(() => drawText(textStyle, textPos, w, fontSize, darkText))
+    drawDarkBg().then(() => drawText(textStyle, textPos, w, fontSize, darkText, fontFamily, accent))
   }, [textOnlyMode, drawDarkBg])
 
   // 텍스트 관련 변경 시 배경 재사용하고 텍스트만 다시 그리기
   useEffect(() => {
     if ((!uploadedImage && !textOnlyMode) || !bgCacheRef.current) return
     const w = { ...workout, title: editTitle, format: editFormat, exercises: editExercises.split('\n') }
-    drawText(textStyle, textPos, w, fontSize, darkText)
-  }, [textStyle, textPos, fontSize, darkText, editTitle, editFormat, editExercises, drawText])
+    drawText(textStyle, textPos, w, fontSize, darkText, fontFamily, accent)
+  }, [textStyle, textPos, fontSize, darkText, fontFamily, accent, fontTick, editTitle, editFormat, editExercises, drawText])
 
   const getPos = (clientX: number, clientY: number) => {
     const el = previewRef.current
@@ -390,7 +579,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
       if (p) {
         setTextPos(p)
         const w = { ...workout, title: editTitle, format: editFormat, exercises: editExercises.split('\n') }
-        drawText(textStyle, p, w, fontSize, darkText)
+        drawText(textStyle, p, w, fontSize, darkText, fontFamily, accent)
       }
     }
     const onUp = () => setDragging(false)
@@ -404,7 +593,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
       window.removeEventListener('touchmove', onMove)
       window.removeEventListener('touchend', onUp)
     }
-  }, [dragging, drawText, textStyle, fontSize, darkText, editTitle, editFormat, editExercises, workout])
+  }, [dragging, drawText, textStyle, fontSize, darkText, fontFamily, accent, editTitle, editFormat, editExercises, workout])
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -426,11 +615,12 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
       await font.load()
       document.fonts.add(font)
     } catch {}
+    try { await document.fonts.load(`700 100px ${fontFamily}`, '가나다 ABC 123') } catch {}
 
     // 투명 배경에 텍스트만 그리기
     ctx.clearRect(0, 0, W, H)
     const w = { ...workout, title: editTitle, format: editFormat, exercises: editExercises.split('\n') }
-    applyTextStyle(ctx, w, textStyle, textPos.x * W, textPos.y * H, fontSize, darkText)
+    applyTextStyle(ctx, w, textStyle, textPos.x * W, textPos.y * H, fontSize, darkText, fontFamily, accent)
     ctx.shadowBlur = 0
     ctx.font = `700 46px "Bebas Neue", Impact, sans-serif`
     ctx.fillStyle = 'white'
@@ -634,6 +824,21 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
               </div>
             </div>
 
+            {/* 폰트 선택 */}
+            <div className="mb-3">
+              <p className="text-xs text-gray-500 mb-2 tracking-widest uppercase">폰트</p>
+              <div className="grid grid-cols-3 gap-2">
+                {FONTS.map(f => (
+                  <button key={f.id} onClick={() => setFontId(f.id)}
+                    className={`py-2 rounded text-xs tracking-wider transition ${
+                      fontId === f.id ? 'bg-accent text-dark' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                    }`}>
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* 글자 색상 */}
             <div className="mb-3">
               <p className="text-xs text-gray-500 mb-2 tracking-widest uppercase">글자 색상</p>
@@ -649,6 +854,19 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
               </div>
             </div>
 
+            {/* 포인트 색상 */}
+            <div className="mb-3">
+              <p className="text-xs text-gray-500 mb-2 tracking-widest uppercase">포인트 색상</p>
+              <div className="grid grid-cols-6 gap-2">
+                {ACCENTS.map(a => (
+                  <button key={a.id} onClick={() => setAccent(a.color)}
+                    aria-label={a.id}
+                    className={`h-8 rounded transition border-2 ${accent === a.color ? 'border-white scale-105' : 'border-gray-700'}`}
+                    style={{ backgroundColor: a.color }} />
+                ))}
+              </div>
+            </div>
+
             {/* 글자 크기 */}
             <div className="mb-3">
               <div className="flex justify-between items-center mb-1">
@@ -656,13 +874,13 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
                 <span className="text-xs text-gray-500">{Math.round(fontSize * 100)}%</span>
               </div>
               <div className="flex items-center gap-3">
-                <button onClick={() => setFontSize(v => Math.max(0.5, +(v - 0.1).toFixed(1)))}
+                <button onClick={() => setFontSize(v => Math.max(0.3, +(v - 0.1).toFixed(2)))}
                   className="w-8 h-8 bg-gray-800 rounded text-white hover:bg-gray-700 transition text-lg">−</button>
-                <input type="range" min="0.5" max="1.8" step="0.05"
+                <input type="range" min="0.3" max="3" step="0.05"
                   value={fontSize}
                   onChange={e => setFontSize(parseFloat(e.target.value))}
                   className="flex-1 accent-yellow-400" />
-                <button onClick={() => setFontSize(v => Math.min(1.8, +(v + 0.1).toFixed(1)))}
+                <button onClick={() => setFontSize(v => Math.min(3, +(v + 0.1).toFixed(2)))}
                   className="w-8 h-8 bg-gray-800 rounded text-white hover:bg-gray-700 transition text-lg">+</button>
               </div>
             </div>
