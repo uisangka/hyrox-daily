@@ -13,7 +13,6 @@ const H = 1350
 
 type OverlayId = 'none' | 'soft' | 'strong' | 'frame' | 'bw'
 type TextStyleId = 'minimal' | 'bold' | 'editorial' | 'clean' | 'outline' | 'poster' | 'box' | 'mono'
-type FontId = 'bebas' | 'anton' | 'archivo' | 'oswald' | 'blackhan' | 'dohyeon'
 
 const OVERLAYS: { id: OverlayId; label: string }[] = [
   { id: 'none',   label: '없음'   },
@@ -34,17 +33,7 @@ const TEXT_STYLES: { id: TextStyleId; label: string }[] = [
   { id: 'mono',      label: 'MONO'      },
 ]
 
-const FONTS: { id: FontId; label: string; family: string }[] = [
-  { id: 'bebas',    label: 'BEBAS',   family: '"Bebas Neue", Impact, sans-serif' },
-  { id: 'anton',    label: 'ANTON',   family: '"Anton", Impact, sans-serif' },
-  { id: 'archivo',  label: 'ARCHIVO', family: '"Archivo Black", sans-serif' },
-  { id: 'oswald',   label: 'OSWALD',  family: '"Oswald", sans-serif' },
-  { id: 'blackhan', label: '블랙한',   family: '"Black Han Sans", sans-serif' },
-  { id: 'dohyeon',  label: '도현체',   family: '"Do Hyeon", sans-serif' },
-]
-
-const GOOGLE_FONTS_URL =
-  'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Anton&family=Archivo+Black&family=Oswald:wght@500;700&family=Black+Han+Sans&family=Do+Hyeon&display=swap'
+const FONT_FAMILY = '"Bebas Neue", Impact, sans-serif'
 
 const ACCENTS: { id: string; color: string }[] = [
   { id: 'yellow', color: '#E5FE3D' },
@@ -362,7 +351,6 @@ function loadTemplate() {
       textPos: { x: number; y: number }
       fontSize: number
       darkText: boolean
-      font?: FontId
       accent?: string
     }
   } catch { return null }
@@ -382,9 +370,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
   const [dragging, setDragging] = useState(false)
   const [fontSize, setFontSize] = useState(saved?.fontSize ?? 1)
   const [darkText, setDarkText] = useState(saved?.darkText ?? false)
-  const [fontId, setFontId] = useState<FontId>(saved?.font ?? 'bebas')
   const [accent, setAccent] = useState(saved?.accent ?? '#E5FE3D')
-  const [fontTick, setFontTick] = useState(0)
   const [textOnlyMode, setTextOnlyMode] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
   const [saveImageUrl, setSaveImageUrl] = useState<string | null>(null)
@@ -393,29 +379,10 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
   const [editFormat, setEditFormat] = useState(workout.format || '')
   const [editExercises, setEditExercises] = useState(workout.exercises.join('\n'))
 
-  const fontFamily = FONTS.find(f => f.id === fontId)!.family
-
-  // Google Fonts 스타일시트 1회 주입
-  useEffect(() => {
-    if (document.getElementById('share-template-fonts')) return
-    const link = document.createElement('link')
-    link.id = 'share-template-fonts'
-    link.rel = 'stylesheet'
-    link.href = GOOGLE_FONTS_URL
-    document.head.appendChild(link)
-  }, [])
-
-  // 선택한 폰트 로드 완료 시 다시 그리기
-  useEffect(() => {
-    let alive = true
-    document.fonts.load(`700 100px ${fontFamily}`, '가나다 ABC 123')
-      .then(() => { if (alive) setFontTick(t => t + 1) })
-      .catch(() => {})
-    return () => { alive = false }
-  }, [fontFamily])
+  const fontFamily = FONT_FAMILY
 
   const saveTemplate = () => {
-    localStorage.setItem(TEMPLATE_KEY, JSON.stringify({ overlay, textStyle, textPos, fontSize, darkText, font: fontId, accent }))
+    localStorage.setItem(TEMPLATE_KEY, JSON.stringify({ overlay, textStyle, textPos, fontSize, darkText, accent }))
     setSaveMsg('템플릿 저장됨!')
     setTimeout(() => setSaveMsg(null), 2000)
   }
@@ -537,7 +504,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
       exercises: filterTextOnlyExercises(editExercises.split('\n'))
     }
     drawText(textStyle, textPos, w, fontSize, darkText, fontFamily, accent)
-  }, [textStyle, textPos, fontSize, darkText, fontFamily, accent, fontTick, editTitle, editFormat, editExercises, drawText, textOnlyMode])
+  }, [textStyle, textPos, fontSize, darkText, fontFamily, accent, editTitle, editFormat, editExercises, drawText, textOnlyMode])
 
   const getPos = (clientX: number, clientY: number) => {
     const el = previewRef.current
@@ -733,7 +700,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
 
             {/* 텍스트 스타일 선택 */}
             <div className="mb-3">
-              <p className="text-xs text-gray-500 mb-2 tracking-widest uppercase">텍스트</p>
+              <p className="text-xs text-gray-500 mb-2 tracking-widest uppercase">템플릿</p>
               <div className="grid grid-cols-4 gap-2">
                 {TEXT_STYLES.map(t => (
                   <button key={t.id} onClick={() => setTextStyle(t.id)}
@@ -741,21 +708,6 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
                       textStyle === t.id ? 'bg-accent text-dark' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
                     }`}>
                     {t.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* 폰트 선택 */}
-            <div className="mb-3">
-              <p className="text-xs text-gray-500 mb-2 tracking-widest uppercase">폰트</p>
-              <div className="grid grid-cols-3 gap-2">
-                {FONTS.map(f => (
-                  <button key={f.id} onClick={() => setFontId(f.id)}
-                    className={`py-2 rounded text-xs tracking-wider transition ${
-                      fontId === f.id ? 'bg-accent text-dark' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-                    }`}>
-                    {f.label}
                   </button>
                 ))}
               </div>
