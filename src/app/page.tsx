@@ -137,11 +137,19 @@ export default function Home() {
           <h1 className="font-bebas text-4xl tracking-wider">
             <span className="text-accent">HYROX</span> DAILY
           </h1>
-          <img
-            src="/lagom-symbol.png"
-            alt="Lagom Training"
-            style={{ height: '32px', filter: 'invert(1)', opacity: 0.25 }}
-          />
+          <div className="flex items-center gap-4">
+            <a
+              href="/guide"
+              className="px-3 py-1.5 border border-gray-700 text-gray-400 text-sm rounded hover:border-accent hover:text-accent transition"
+            >
+              가이드
+            </a>
+            <img
+              src="/lagom-symbol.png"
+              alt="Lagom Training"
+              style={{ height: '32px', filter: 'invert(1)', opacity: 0.25 }}
+            />
+          </div>
         </div>
 
         {/* Error */}
