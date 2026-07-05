@@ -50,11 +50,6 @@ export default function GuidePage() {
               <span className="text-accent">HYROX</span> DAILY
             </h1>
           </Link>
-          <img
-            src="/lagom-symbol.png"
-            alt="Lagom Training"
-            style={{ height: '32px', filter: 'invert(1)', opacity: 0.25 }}
-          />
         </div>
 
         <h2 className="font-bebas text-5xl mb-8 leading-tight">HYROX DAILY 가이드</h2>

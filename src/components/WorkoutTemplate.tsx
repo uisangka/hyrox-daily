@@ -477,49 +477,9 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
         }
         applyOverlay(ctx, ov, accentColor)
         ctx.shadowBlur = 0
-        const symbol = new Image()
-        symbol.onload = () => {
-          const sw2 = 44, sh2 = 44
-          const off = document.createElement('canvas')
-          off.width = sw2; off.height = sh2
-          const offCtx = off.getContext('2d')!
-          offCtx.drawImage(symbol, 0, 0, sw2, sh2)
-          offCtx.globalCompositeOperation = 'difference'
-          offCtx.fillStyle = 'white'
-          offCtx.fillRect(0, 0, sw2, sh2)
-          ctx.globalAlpha = 0.25
-          ctx.globalCompositeOperation = 'screen'
-          ctx.drawImage(off, W - sw2 - 40, 28, sw2, sh2)
-          ctx.globalCompositeOperation = 'source-over'
-          ctx.globalAlpha = 1
-          resolve()
-        }
-        symbol.onerror = () => resolve()
-        symbol.src = '/lagom-symbol.png'
-      }
-      img.src = src
-    })
-
-    await new Promise<void>((resolve) => {
-      const logo = new Image()
-      logo.onload = () => {
-        const lw = 260, lh = 42
-        const off = document.createElement('canvas')
-        off.width = lw; off.height = lh
-        const offCtx = off.getContext('2d')!
-        offCtx.drawImage(logo, 0, 0, lw, lh)
-        offCtx.globalCompositeOperation = 'difference'
-        offCtx.fillStyle = 'white'
-        offCtx.fillRect(0, 0, lw, lh)
-        ctx.globalAlpha = 0.2
-        ctx.globalCompositeOperation = 'screen'
-        ctx.drawImage(off, (W - lw) / 2, H - lh - 28, lw, lh)
-        ctx.globalCompositeOperation = 'source-over'
-        ctx.globalAlpha = 1
         resolve()
       }
-      logo.onerror = () => resolve()
-      logo.src = '/lagom-logo.png'
+      img.src = src
     })
 
     if (drawIdRef.current !== drawId) return
@@ -663,47 +623,6 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
     ctx.font = `700 32px "Bebas Neue", Impact, sans-serif`
     ctx.fillStyle = 'rgba(255,255,255,0.75)'
     ctx.fillText('@HYROX_DAILY', 56, H - 32)
-
-    // 워터마크 (RGB 이미지를 밝기 기반으로 흰색+투명 변환)
-    const makeWhiteWatermark = (img: HTMLImageElement, w: number, h: number) => {
-      const off = document.createElement('canvas')
-      off.width = w; off.height = h
-      const offCtx = off.getContext('2d')!
-      offCtx.drawImage(img, 0, 0, w, h)
-      const data = offCtx.getImageData(0, 0, w, h)
-      const d = data.data
-      for (let i = 0; i < d.length; i += 4) {
-        const brightness = (d[i] + d[i + 1] + d[i + 2]) / 3 / 255
-        d[i] = 255; d[i + 1] = 255; d[i + 2] = 255
-        d[i + 3] = Math.round((1 - brightness) * 255)
-      }
-      offCtx.putImageData(data, 0, 0)
-      return off
-    }
-    await new Promise<void>((resolve) => {
-      const symbol = new Image()
-      symbol.onload = () => {
-        const sw = 44, sh = 44
-        ctx.globalAlpha = 0.35
-        ctx.drawImage(makeWhiteWatermark(symbol, sw, sh), W - sw - 40, 28, sw, sh)
-        ctx.globalAlpha = 1
-        resolve()
-      }
-      symbol.onerror = () => resolve()
-      symbol.src = '/lagom-symbol.png'
-    })
-    await new Promise<void>((resolve) => {
-      const logo = new Image()
-      logo.onload = () => {
-        const lw = 260, lh = 42
-        ctx.globalAlpha = 0.3
-        ctx.drawImage(makeWhiteWatermark(logo, lw, lh), (W - lw) / 2, H - lh - 28, lw, lh)
-        ctx.globalAlpha = 1
-        resolve()
-      }
-      logo.onerror = () => resolve()
-      logo.src = '/lagom-logo.png'
-    })
 
     const blob = await new Promise<Blob | null>(resolve => offscreen.toBlob(resolve, 'image/png'))
     if (!blob) return

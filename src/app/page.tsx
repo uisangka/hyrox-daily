@@ -167,11 +167,6 @@ export default function Home() {
                 <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
               </svg>
             </a>
-            <img
-              src="/lagom-symbol.png"
-              alt="Lagom Training"
-              style={{ height: '32px', filter: 'invert(1)', opacity: 0.25 }}
-            />
           </div>
         </div>
 
@@ -358,15 +353,6 @@ export default function Home() {
             onClose={() => setTemplateWorkout(null)}
           />
         )}
-
-        {/* Watermark */}
-        <div className="mt-24 mb-4 flex justify-center">
-          <img
-            src="/lagom-logo.png"
-            alt="Lagom Training"
-            style={{ height: '18px', filter: 'invert(1)', opacity: 0.2 }}
-          />
-        </div>
       </div>
     </main>
   )
