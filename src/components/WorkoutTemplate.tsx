@@ -534,7 +534,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
       ...workout,
       title: editTitle,
       format: editFormat,
-      exercises: textOnlyMode ? filterTextOnlyExercises(editExercises.split('\n')) : editExercises.split('\n')
+      exercises: filterTextOnlyExercises(editExercises.split('\n'))
     }
     drawText(textStyle, textPos, w, fontSize, darkText, fontFamily, accent)
   }, [textStyle, textPos, fontSize, darkText, fontFamily, accent, fontTick, editTitle, editFormat, editExercises, drawText, textOnlyMode])
@@ -561,7 +561,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
           ...workout,
           title: editTitle,
           format: editFormat,
-          exercises: textOnlyMode ? filterTextOnlyExercises(editExercises.split('\n')) : editExercises.split('\n')
+          exercises: filterTextOnlyExercises(editExercises.split('\n'))
         }
         drawText(textStyle, p, w, fontSize, darkText, fontFamily, accent)
       }
