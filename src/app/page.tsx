@@ -12,8 +12,15 @@ function formatDate(dateStr: string) {
   return `${year}.${month}.${day}`
 }
 
+function getTomorrow() {
+  const d = new Date()
+  d.setDate(d.getDate() + 1)
+  return d.toLocaleDateString('en-CA')
+}
+
 export default function Home() {
   const [todayWorkouts, setTodayWorkouts] = useState<Workout[]>([])
+  const [tomorrowWorkouts, setTomorrowWorkouts] = useState<Workout[]>([])
   const [archiveWorkouts, setArchiveWorkouts] = useState<Workout[]>([])
   const [archiveTotal, setArchiveTotal] = useState(0)
   const [archivePage, setArchivePage] = useState(1)
@@ -32,15 +39,18 @@ export default function Home() {
       setLoading(true)
       setError(null)
       const today = new Date().toLocaleDateString('en-CA')
+      const tomorrow = getTomorrow()
 
-      const { data: todayData, error: todayError } = await supabase
+      const { data: upcomingData, error: todayError } = await supabase
         .from('workouts')
         .select('*')
-        .eq('date', today)
+        .in('date', [today, tomorrow])
+        .order('date', { ascending: true })
         .order('created_at', { ascending: true })
 
       if (todayError) throw todayError
-      setTodayWorkouts(todayData || [])
+      setTodayWorkouts((upcomingData || []).filter(w => w.date === today))
+      setTomorrowWorkouts((upcomingData || []).filter(w => w.date === tomorrow))
 
       const { data: archiveData, error: archiveError, count } = await supabase
         .from('workouts')
@@ -228,6 +238,51 @@ export default function Home() {
           <section className="mb-20 text-center py-16 border border-gray-800 rounded-lg">
             <p className="font-bebas text-4xl text-gray-500 mb-2">REST DAY</p>
             <p className="text-gray-600 text-sm">다음 레이스를 위한 연료 충전 중</p>
+          </section>
+        )}
+
+        {/* Tomorrow's Workouts (preview) */}
+        {tomorrowWorkouts.length > 0 && (
+          <section className="mb-20">
+            <div className="mb-8">
+              <h2 className="font-bebas text-3xl text-gray-400 mb-0">TOMORROW WORKOUT</h2>
+              <span className="text-base text-white/85 font-semibold block tracking-wide">
+                {formatDate(getTomorrow())}
+              </span>
+            </div>
+            {tomorrowWorkouts.map((workout, idx) => (
+              <div key={workout.id} className={idx > 0 ? 'border-t border-gray-700 pt-12 mt-12' : ''}>
+                <div className="mb-8">
+                  <button
+                    onClick={() => setTemplateWorkout(workout)}
+                    className="mb-6 px-4 py-2 border border-gray-700 text-gray-400 text-sm rounded hover:border-accent hover:text-accent transition"
+                  >
+                    SHARE YOUR WORKOUT
+                  </button>
+                  {workout.title && (
+                    <h1 className="font-bebas text-6xl mb-4 leading-tight break-words">
+                      {workout.title}
+                    </h1>
+                  )}
+                  {workout.format && (
+                    <p className="text-2xl text-accent font-bebas mb-6">
+                      {workout.format}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-8">
+                  {parseExercises(workout.exercises).map((group, groupIdx) => (
+                    <div key={groupIdx} className="border-l-4 border-accent pl-6">
+                      {group.map((exercise, exIdx) => (
+                        <p key={exIdx} className={getExerciseTextClass()}>
+                          {highlightWorkoutAndNumbers(exercise)}
+                        </p>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </section>
         )}
 
