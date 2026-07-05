@@ -99,8 +99,8 @@ export default function Home() {
     return groups.filter(g => g.length > 0)
   }
 
-  const highlightNumbers = (text: string) => {
-    return text.split(/(\d+)/g).map((part, i) => {
+  const highlightWorkoutAndNumbers = (text: string) => {
+    return text.split(/(\b(?:WORKOUT|Intent|Sub|Notes?|Note)\b|\d+)/gi).map((part, i) => {
       if (/^\d+$/.test(part)) {
         return (
           <span key={i} className="highlight-number">
@@ -108,9 +108,18 @@ export default function Home() {
           </span>
         )
       }
+      if (/^(?:WORKOUT|Intent|Sub|Notes?|Note)$/i.test(part)) {
+        return (
+          <span key={i} className="text-gray-400">
+            {part}
+          </span>
+        )
+      }
       return part
     })
   }
+
+  const getExerciseTextClass = () => 'text-lg mb-2 leading-relaxed'
 
   if (loading) {
     return (
@@ -153,7 +162,7 @@ export default function Home() {
           <section className="mb-20">
             <div className="mb-8">
               <h2 className="font-bebas text-3xl text-gray-400 mb-0">TODAY WORKOUT</h2>
-              <span className="text-sm text-gray-500 block">
+              <span className="text-base text-white/85 font-semibold block tracking-wide">
                 {formatDate(new Date().toLocaleDateString('en-CA'))}
               </span>
             </div>
@@ -181,8 +190,8 @@ export default function Home() {
                   {parseExercises(workout.exercises).map((group, groupIdx) => (
                     <div key={groupIdx} className="border-l-4 border-accent pl-6">
                       {group.map((exercise, exIdx) => (
-                        <p key={exIdx} className="text-lg mb-2 leading-relaxed">
-                          {highlightNumbers(exercise)}
+                        <p key={exIdx} className={getExerciseTextClass()}>
+                          {highlightWorkoutAndNumbers(exercise)}
                         </p>
                       ))}
                     </div>
@@ -204,33 +213,46 @@ export default function Home() {
         {/* Archive */}
         {archiveWorkouts.length > 0 && (
           <section>
-            <h2 className="font-bebas text-3xl mb-8 text-gray-400 border-t border-gray-700 pt-8">
+            <h2 className="font-bebas text-3xl mb-4 text-gray-400 border-t border-gray-700 pt-8">
               ARCHIVE
             </h2>
+            <p className="text-sm text-gray-500 mb-8">
+              지난 워크아웃 중 원하는 날짜의 카드에서 <span className="font-semibold text-white">SHARE YOUR WORKOUT</span> 버튼을 누르세요.
+            </p>
             <div className="space-y-12">
               {archiveWorkouts.map(workout => (
                 <article key={workout.id} className="pb-8 border-b border-gray-800">
                   <div className="mb-4">
-                    <p className="text-gray-500 text-sm mb-2">
-                      {formatDate(workout.date)}
-                    </p>
-                    {workout.title && (
-                      <h3 className="font-bebas text-2xl mb-2">
-                        {workout.title}
-                      </h3>
-                    )}
-                    {workout.format && (
-                      <p className="text-accent text-sm mb-4">
-                        {workout.format}
-                      </p>
-                    )}
+                    <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                      <div>
+                        <p className="text-gray-500 text-sm mb-2">
+                          {formatDate(workout.date)}
+                        </p>
+                        {workout.title && (
+                          <h3 className="font-bebas text-2xl mb-2">
+                            {workout.title}
+                          </h3>
+                        )}
+                        {workout.format && (
+                          <p className="text-accent text-sm">
+                            {workout.format}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => setTemplateWorkout(workout)}
+                        className="px-4 py-2 border border-gray-700 text-gray-400 text-sm rounded hover:border-accent hover:text-accent transition"
+                      >
+                        SHARE YOUR WORKOUT
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-4 text-sm">
                     {parseExercises(workout.exercises).map((group, idx) => (
                       <div key={idx} className="border-l border-gray-600 pl-3">
                         {group.map((exercise, exIdx) => (
                           <p key={exIdx} className="text-gray-300 mb-1">
-                            {highlightNumbers(exercise)}
+                            {highlightWorkoutAndNumbers(exercise)}
                           </p>
                         ))}
                       </div>

@@ -96,6 +96,34 @@ const TRAINING_GUIDE = [
   { title: 'BRICK SESSION', desc: '런+근력을 쉬지 않고 연속 수행.', example: '런 1km + 버피 20개 + 슬레드 푸시 x 4라운드' },
 ]
 
+function formatDate(dateStr: string) {
+  const [year, month, day] = dateStr.split('-')
+  return `${year}.${month}.${day}`
+}
+
+function parseExercises(exercises: string[]) {
+  const groups: string[][] = [[]]
+  for (const line of exercises) {
+    if (line.trim() === '') {
+      if (groups[groups.length - 1].length > 0) groups.push([])
+    } else {
+      groups[groups.length - 1].push(line)
+    }
+  }
+  return groups.filter(g => g.length > 0)
+}
+
+const highlightNumbers = (text: string) =>
+  text.split(/(\d+)/g).map((part, idx) =>
+    /^\d+$/.test(part) ? (
+      <span key={idx} className="text-white font-bold">
+        {part}
+      </span>
+    ) : (
+      <span key={idx}>{part}</span>
+    )
+  )
+
 function TrainingGuide() {
   const [open, setOpen] = useState(false)
   return (
@@ -122,6 +150,71 @@ function TrainingGuide() {
   )
 }
 
+function PreviewWorkoutModal({ workout, onClose }: { workout: Workout; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4">
+      <div className="w-full max-w-4xl bg-[#0b0b0b] rounded-3xl border border-gray-800 overflow-hidden shadow-2xl">
+        <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-gray-800">
+          <div>
+            <p className="text-gray-400 text-xs uppercase tracking-[0.3em] mb-1">워크아웃 미리보기</p>
+            <h2 className="font-bebas text-2xl text-white">{workout.title || '오늘의 운동'}</h2>
+            <p className="text-gray-500 text-sm mt-1">{formatDate(workout.date)}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-gray-400 hover:text-white text-3xl leading-none"
+            aria-label="닫기"
+          >
+            ×
+          </button>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-4 p-6">
+          <div className="bg-gray-950 rounded-3xl p-6 border border-gray-800">
+            <div className="mb-6">
+              <p className="text-accent text-xs tracking-[0.35em] uppercase mb-2">TODAY WORKOUT</p>
+              <h3 className="font-bebas text-4xl text-white leading-tight mb-3">
+                {workout.title || 'TODAY WORKOUT'}
+              </h3>
+              {workout.format && (
+                <p className="text-gray-300 text-sm">{workout.format}</p>
+              )}
+            </div>
+            <div className="space-y-3 text-gray-200 text-sm">
+              {parseExercises(workout.exercises).map((group, groupIdx) => (
+                <div key={groupIdx} className="space-y-2">
+                  {group.map((exercise, idx) => (
+                    <p key={idx} className="leading-relaxed">{highlightNumbers(exercise)}</p>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="bg-gray-900 rounded-3xl p-6 border border-gray-800">
+            <div className="mb-5">
+              <p className="text-gray-400 text-xs uppercase tracking-[0.3em] mb-2">디테일</p>
+              <div className="text-sm text-gray-300 space-y-2">
+                <p><span className="text-gray-500">날짜:</span> {formatDate(workout.date)}</p>
+                {workout.title && <p><span className="text-gray-500">제목:</span> {workout.title}</p>}
+                {workout.format && <p><span className="text-gray-500">포맷:</span> {workout.format}</p>}
+              </div>
+            </div>
+            <div className="rounded-2xl bg-gray-950 p-4 border border-gray-800">
+              <p className="text-gray-400 text-xs uppercase tracking-[0.3em] mb-3">페이지 출력 형태</p>
+              <div className="space-y-3 text-sm text-gray-200">
+                <p className="font-semibold text-white">- 상단 섹션</p>
+                <p>제목, 포맷, 오늘 날짜가 시각적으로 강조됩니다.</p>
+                <p className="font-semibold text-white">- 본문</p>
+                <p>운동 항목이 그룹별로 정리되어 출력됩니다.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function AdminPanel() {
   const [formData, setFormData] = useState<FormData>({
     date: new Date().toISOString().split('T')[0],
@@ -135,6 +228,7 @@ export default function AdminPanel() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [previewWorkout, setPreviewWorkout] = useState<Workout | null>(null)
   const [successMessage, setSuccessMessage] = useState('')
 
   useEffect(() => {
@@ -426,6 +520,12 @@ export default function AdminPanel() {
                       수정
                     </button>
                     <button
+                      onClick={() => setPreviewWorkout(workout)}
+                      className="px-3 py-1 bg-yellow-500 text-dark text-sm rounded hover:bg-yellow-400 transition"
+                    >
+                      미리보기
+                    </button>
+                    <button
                       onClick={() => handleDelete(workout.id)}
                       className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition"
                     >
@@ -444,6 +544,12 @@ export default function AdminPanel() {
           </div>
 
           {/* Pagination */}
+          {previewWorkout && (
+            <PreviewWorkoutModal
+              workout={previewWorkout}
+              onClose={() => setPreviewWorkout(null)}
+            />
+          )}
           {totalPages > 1 && (
             <div className="flex justify-center items-center gap-2 mt-8">
               <button

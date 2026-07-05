@@ -26,8 +26,9 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: 0.05em;
 }
 
-/* Highlight numbers and records in yellow */
+/* Highlight numbers and records in white bold; accent yellow is reserved for structural elements */
 .highlight-number {
-  color: #E5FE3D;
-  font-weight: 600;
+  color: #ffffff;
+  font-weight: 700;
 }
+

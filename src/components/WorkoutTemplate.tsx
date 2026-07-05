@@ -67,6 +67,10 @@ function parseExercises(exercises: string[]) {
   return groups.filter(g => g.length > 0)
 }
 
+function filterTextOnlyExercises(exercises: string[]) {
+  return exercises.filter(line => !/^(\s*)(Intent|Sub|Notes?|Note)\b/i.test(line))
+}
+
 function formatDate(dateStr: string) {
   const [year, month, day] = dateStr.split('-')
   return `${year}.${month}.${day}`
@@ -542,23 +546,38 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
   // 이미지/오버레이 변경 시 배경 재생성 후 텍스트 그리기
   useEffect(() => {
     if (!uploadedImage) return
-    const w = { ...workout, title: editTitle, format: editFormat, exercises: editExercises.split('\n') }
+    const w = {
+      ...workout,
+      title: editTitle,
+      format: editFormat,
+      exercises: filterTextOnlyExercises(editExercises.split('\n'))
+    }
     drawBg(uploadedImage, overlay, accent).then(() => drawText(textStyle, textPos, w, fontSize, darkText, fontFamily, accent))
   }, [uploadedImage, overlay, accent, drawBg])
 
   // 텍스트 전용 모드 진입 시 어두운 배경 생성
   useEffect(() => {
     if (!textOnlyMode || uploadedImage) return
-    const w = { ...workout, title: editTitle, format: editFormat, exercises: editExercises.split('\n') }
+    const w = {
+      ...workout,
+      title: editTitle,
+      format: editFormat,
+      exercises: filterTextOnlyExercises(editExercises.split('\n'))
+    }
     drawDarkBg().then(() => drawText(textStyle, textPos, w, fontSize, darkText, fontFamily, accent))
   }, [textOnlyMode, drawDarkBg])
 
   // 텍스트 관련 변경 시 배경 재사용하고 텍스트만 다시 그리기
   useEffect(() => {
     if ((!uploadedImage && !textOnlyMode) || !bgCacheRef.current) return
-    const w = { ...workout, title: editTitle, format: editFormat, exercises: editExercises.split('\n') }
+    const w = {
+      ...workout,
+      title: editTitle,
+      format: editFormat,
+      exercises: textOnlyMode ? filterTextOnlyExercises(editExercises.split('\n')) : editExercises.split('\n')
+    }
     drawText(textStyle, textPos, w, fontSize, darkText, fontFamily, accent)
-  }, [textStyle, textPos, fontSize, darkText, fontFamily, accent, fontTick, editTitle, editFormat, editExercises, drawText])
+  }, [textStyle, textPos, fontSize, darkText, fontFamily, accent, fontTick, editTitle, editFormat, editExercises, drawText, textOnlyMode])
 
   const getPos = (clientX: number, clientY: number) => {
     const el = previewRef.current
@@ -578,7 +597,12 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
       const p = getPos(clientX, clientY)
       if (p) {
         setTextPos(p)
-        const w = { ...workout, title: editTitle, format: editFormat, exercises: editExercises.split('\n') }
+        const w = {
+          ...workout,
+          title: editTitle,
+          format: editFormat,
+          exercises: textOnlyMode ? filterTextOnlyExercises(editExercises.split('\n')) : editExercises.split('\n')
+        }
         drawText(textStyle, p, w, fontSize, darkText, fontFamily, accent)
       }
     }
@@ -619,7 +643,12 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
 
     // 투명 배경에 텍스트만 그리기
     ctx.clearRect(0, 0, W, H)
-    const w = { ...workout, title: editTitle, format: editFormat, exercises: editExercises.split('\n') }
+    const w = {
+      ...workout,
+      title: editTitle,
+      format: editFormat,
+      exercises: filterTextOnlyExercises(editExercises.split('\n'))
+    }
     applyTextStyle(ctx, w, textStyle, textPos.x * W, textPos.y * H, fontSize, darkText, fontFamily, accent)
     ctx.shadowBlur = 0
     ctx.font = `700 46px "Bebas Neue", Impact, sans-serif`
@@ -676,27 +705,13 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
       logo.src = '/lagom-logo.png'
     })
 
-    const isInstagram = /Instagram/.test(navigator.userAgent)
-    if (isInstagram) {
-      setSaveImageUrl(offscreen.toDataURL('image/png'))
-      return
-    }
-
     const blob = await new Promise<Blob | null>(resolve => offscreen.toBlob(resolve, 'image/png'))
     if (!blob) return
 
-    const isMobile = /Android|iPhone|iPad|iPod/.test(navigator.userAgent)
-    const file = new File([blob], `hyrox-text-${workout.date}.png`, { type: 'image/png' })
-    if (isMobile && navigator.share && navigator.canShare?.({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file] })
-      } catch {}
-    } else {
-      const link = document.createElement('a')
-      link.download = `hyrox-text-${workout.date}.png`
-      link.href = offscreen.toDataURL('image/png')
-      link.click()
-    }
+    const link = document.createElement('a')
+    link.download = `hyrox-text-${workout.date}.png`
+    link.href = offscreen.toDataURL('image/png')
+    link.click()
     setSaveMsg('텍스트 저장 완료!')
     setTimeout(() => setSaveMsg(null), 3000)
   }
@@ -714,24 +729,12 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
     const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'))
     if (!blob) return
 
-    const isMobile = /Android|iPhone|iPad|iPod/.test(navigator.userAgent)
-    const file = new File([blob], `hyrox-${workout.date}.png`, { type: 'image/png' })
-    if (isMobile && navigator.share && navigator.canShare?.({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file] })
-        setSaveMsg('저장 완료!')
-        setTimeout(() => setSaveMsg(null), 3000)
-      } catch {
-        // 사용자가 취소한 경우
-      }
-    } else {
-      const link = document.createElement('a')
-      link.download = `hyrox-${workout.date}.png`
-      link.href = canvas.toDataURL('image/png')
-      link.click()
-      setSaveMsg('저장 완료!')
-      setTimeout(() => setSaveMsg(null), 3000)
-    }
+    const link = document.createElement('a')
+    link.download = `hyrox-${workout.date}.png`
+    link.href = canvas.toDataURL('image/png')
+    link.click()
+    setSaveMsg('저장 완료!')
+    setTimeout(() => setSaveMsg(null), 3000)
   }
 
   return (
