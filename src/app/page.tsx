@@ -144,30 +144,30 @@ export default function Home() {
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="mb-12 border-b border-accent pb-4 flex items-center justify-between">
-          <h1 className="font-bebas text-4xl tracking-wider">
-            <span className="text-accent">HYROX</span> DAILY
-          </h1>
           <div className="flex items-center gap-4">
+            <h1 className="font-bebas text-4xl tracking-wider">
+              <span className="text-accent">HYROX</span> DAILY
+            </h1>
             <a
               href="/guide"
               className="px-3 py-1.5 border border-gray-700 text-gray-400 text-sm rounded hover:border-accent hover:text-accent transition"
             >
               가이드
             </a>
-            <a
-              href="https://www.instagram.com/hyrox_daily?igsh=MWRhNWM5amNseDRiYg=="
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Instagram"
-              className="text-gray-400 hover:text-accent transition"
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
-              </svg>
-            </a>
           </div>
+          <a
+            href="https://www.instagram.com/hyrox_daily?igsh=MWRhNWM5amNseDRiYg=="
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Instagram"
+            className="flex items-center justify-center w-11 h-11 rounded-full border border-accent text-accent bg-accent/10 hover:bg-accent hover:text-dark transition"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+              <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+            </svg>
+          </a>
         </div>
 
         {/* Error */}
