@@ -155,7 +155,7 @@ export default function Home() {
               가이드
             </a>
             <a
-              href="https://www.instagram.com/hyrox_daliy?igsh=MWRhNWM5amNseDRiYg=="
+              href="https://www.instagram.com/hyrox_daily?igsh=MWRhNWM5amNseDRiYg=="
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Instagram"
