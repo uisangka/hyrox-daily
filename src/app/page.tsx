@@ -160,7 +160,7 @@ export default function Home() {
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Instagram"
-            className="flex items-center justify-center w-11 h-11 rounded-full border border-accent text-accent bg-accent/10 hover:bg-accent hover:text-dark transition"
+            className="flex items-center justify-center w-11 h-11 -mr-2 text-accent hover:opacity-70 transition"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
