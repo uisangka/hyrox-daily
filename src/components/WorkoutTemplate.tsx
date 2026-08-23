@@ -43,6 +43,18 @@ const ACCENTS: { id: string; color: string }[] = [
   { id: 'cyan',   color: '#00E5FF' },
   { id: 'pink',   color: '#FF2D78' },
 ]
+/* ────────────────────────────────────────────────────────────
+   레이아웃 엔진 — measure → layout → paint
+   스타일 8종은 토큰만 다르고 렌더 경로는 하나를 공유한다.
+   ──────────────────────────────────────────────────────────── */
+
+const SANS = '-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", "Malgun Gothic", sans-serif'
+const MONO = 'Consolas, "Courier New", monospace'
+
+const SAFE_TOP = 160      // 상단 TODAY WORKOUT 헤더 영역
+const SAFE_BOTTOM = 96    // 하단 @HYROX_DAILY 영역
+const SPEC_GAP = 28       // 동작명과 수치 사이 최소 간격
+const MIN_SHRINK = 0.62   // 오토핏 최소 축소율
 
 function parseExercises(exercises: string[]) {
   const groups: string[][] = [[]]
@@ -65,21 +77,25 @@ function formatDate(dateStr: string) {
   return `${year}.${month}.${day}`
 }
 
+/** 공백 기준 줄바꿈 + 공백 없는 긴 토큰(한글 등)은 글자 단위로 분해 */
 function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number) {
-  const words = text.split(' ')
   const lines: string[] = []
   let line = ''
-  for (const word of words) {
+  const push = () => { if (line) { lines.push(line); line = '' } }
+  for (const word of text.split(' ')) {
     const test = line ? line + ' ' + word : word
-    if (ctx.measureText(test).width > maxWidth && line) {
-      lines.push(line)
-      line = word
-    } else {
-      line = test
+    if (ctx.measureText(test).width <= maxWidth) { line = test; continue }
+    push()
+    if (ctx.measureText(word).width <= maxWidth) { line = word; continue }
+    let chunk = ''
+    for (const ch of word) {
+      if (ctx.measureText(chunk + ch).width > maxWidth && chunk) { lines.push(chunk); chunk = ch }
+      else chunk += ch
     }
+    line = chunk
   }
-  if (line) lines.push(line)
-  return lines
+  push()
+  return lines.length ? lines : ['']
 }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -124,6 +140,396 @@ function applyOverlay(ctx: CanvasRenderingContext2D, overlay: OverlayId, accent:
   }
 }
 
+/* ── 1. 라인 파서 ─────────────────────────────────────────── */
+
+type LineKind = 'part' | 'lead' | 'move' | 'rest' | 'split' | 'text'
+
+interface ParsedLine {
+  kind: LineKind
+  left: string
+  right?: string
+}
+
+const RE_PART = /^(WORKOUT|PART\s+[A-Z0-9]|THEN\b|ROUNDS?\b|\d+\s*ROUNDS?\b|BLOCK\b|BUY[-\s]?IN|CASH[-\s]?OUT|FINISHER|WARM[-\s]?UP|COOL[-\s]?DOWN|EMOM|AMRAP|FOR\s+TIME|CHIPPER|SUPERSET|STRAIGHT\s+SETS)/i
+const RE_REST = /^\(?\s*REST\b/i
+const RE_SPLIT = /^[—–\-•]?\s*(\d{1,2}:\d{2}\s*[–—-]\s*\d{1,2}:\d{2})\s+(.+)$/
+const RE_BULLET = /^[—–\-•*]\s+/
+const RE_SPEC_TAIL = /^(.+?)\s+((?:\d+(?:\.\d+)?\s*[×xX]\s*\d+.*)|(?:@\s*\S.*)|(?:\d+(?:\.\d+)?\s*(?:reps?|m|km|cal|sec|s|min|kg|lb)\b.*))$/
+/** 파트 헤더에서 '제목 — 상세' 를 분리 */
+const RE_PART_SPLIT = /^(.{2,28}?)\s+[—–]\s+(.+)$/
+
+function classifyLines(lines: string[]): ParsedLine[] {
+  const out: ParsedLine[] = []
+  for (const raw of lines) {
+    const line = raw.trim()
+    if (!line) continue
+    if (/^WORKOUT$/i.test(line)) continue   // 원문 섹션 마커 — 이미지에선 군더더기
+
+    const sp = line.match(RE_SPLIT)
+    if (sp) { out.push({ kind: 'split', left: sp[2].trim(), right: sp[1].replace(/\s+/g, '') }); continue }
+
+    if (RE_REST.test(line)) { out.push({ kind: 'rest', left: line }); continue }
+
+    const bulleted = RE_BULLET.test(line)
+    const body = line.replace(RE_BULLET, '').trim()
+
+    // 파트 헤더 — 'Part A — 5 × 5min Run' 은 헤더 + 리드 두 줄로 분리
+    if (!bulleted && RE_PART.test(line)) {
+      const ps = line.match(RE_PART_SPLIT)
+      if (ps) { out.push({ kind: 'part', left: ps[1].trim() }); out.push({ kind: 'lead', left: ps[2].trim() }) }
+      else out.push({ kind: 'part', left: line })
+      continue
+    }
+    // '20min continuous machine (...):' 같은 소제목
+    if (!bulleted && /:$/.test(line) && line.length <= 64) { out.push({ kind: 'part', left: line.replace(/:$/, '') }); continue }
+
+    // 2칸 이상 공백 = 이미 정렬된 동작/수치 쌍
+    const m2 = body.match(/^(.*?)\s{2,}(.+)$/)
+    if (m2 && /[\d×xX@]/.test(m2[2])) {
+      let l = m2[1].trim()
+      let r = m2[2].trim()
+      // 'Pull-up / Lat Pulldown 4 × 6' 처럼 왼쪽에 남은 수치도 오른쪽 열로 넘긴다
+      const t = l.match(RE_SPEC_TAIL)
+      if (t) { l = t[1].trim(); r = t[2].trim() + '  ' + r }
+      out.push({ kind: 'move', left: l, right: r })
+      continue
+    }
+
+    const m3 = body.match(RE_SPEC_TAIL)
+    if (m3 && (bulleted || /^\d/.test(body))) { out.push({ kind: 'move', left: m3[1].trim(), right: m3[2].trim() }); continue }
+
+    out.push({ kind: bulleted ? 'move' : 'text', left: body })
+  }
+  // 원문 정렬용 다중 공백은 분류에는 필요했지만 렌더 단계에서는 정리한다
+  return out.map(p => ({
+    ...p,
+    left: p.left.replace(/\s{2,}/g, ' '),
+    right: p.right ? p.right.replace(/\s{2,}/g, ' ') : undefined,
+  }))
+}
+
+/* ── 2. 스타일 토큰 ───────────────────────────────────────── */
+
+interface Tokens {
+  titleSize: number
+  titleWeight: number
+  titleUpper: boolean
+  titleOutline: boolean
+  titleMono: boolean
+  bodyMono: boolean
+  formatSize: number
+  partSize: number
+  moveSize: number
+  restSize: number
+  rule: 'none' | 'left' | 'bar' | 'underline'
+  box: boolean
+  scrim: boolean
+}
+
+const BASE: Tokens = {
+  titleSize: 68, titleWeight: 700, titleUpper: false, titleOutline: false,
+  titleMono: false, bodyMono: false,
+  formatSize: 32, partSize: 28, moveSize: 38, restSize: 26,
+  rule: 'none', box: false, scrim: true,
+}
+
+const TOKENS: Record<TextStyleId, Tokens> = {
+  minimal:   { ...BASE, titleSize: 62, formatSize: 30, moveSize: 36 },
+  bold:      { ...BASE, titleSize: 76, titleUpper: true, rule: 'underline', moveSize: 40, partSize: 30 },
+  editorial: { ...BASE, titleSize: 68, rule: 'left' },
+  clean:     { ...BASE, titleSize: 70, moveSize: 38 },
+  outline:   { ...BASE, titleSize: 78, titleUpper: true, titleOutline: true },
+  poster:    { ...BASE, titleSize: 82, titleUpper: true, rule: 'bar' },
+  box:       { ...BASE, titleSize: 62, box: true, scrim: false, moveSize: 36 },
+  mono:      { ...BASE, titleSize: 52, titleMono: true, bodyMono: true, formatSize: 28, partSize: 24, moveSize: 30, restSize: 22 },
+}
+
+interface Palette {
+  title: string
+  accent: string
+  move: string
+  text: string
+  sub: string
+}
+
+function palette(dark: boolean, accent: string): Palette {
+  return {
+    title:  dark ? 'rgba(0,0,0,0.94)' : '#FFFFFF',
+    accent: dark && accent === '#E5FE3D' ? '#8C8100' : accent,
+    move:   dark ? 'rgba(0,0,0,0.90)' : 'rgba(255,255,255,0.96)',
+    text:   dark ? 'rgba(0,0,0,0.76)' : 'rgba(255,255,255,0.88)',
+    sub:    dark ? 'rgba(0,0,0,0.52)' : 'rgba(255,255,255,0.60)',
+  }
+}
+
+/* ── 3. 측정 (rows 생성) ──────────────────────────────────── */
+
+interface Row {
+  text: string
+  right?: string
+  font: string
+  rightFont?: string
+  color: string
+  rightColor?: string
+  advance: number
+  marginTop: number
+  indent: number
+  stroke?: boolean
+  ruleAfter?: boolean
+  ruleGap?: number   // 룰 라인이 차지하는 추가 높이 (측정에 포함되어야 한다)
+}
+
+function buildRows(
+  ctx: CanvasRenderingContext2D,
+  workout: Workout,
+  tok: Tokens,
+  s: number,
+  pal: Palette,
+  displayFont: string,
+  maxW: number
+): Row[] {
+  const rows: Row[] = []
+  const bodyFam = tok.bodyMono ? MONO : SANS
+  const titleFam = tok.titleMono ? MONO : displayFont
+  const px = (n: number) => Math.max(11, Math.round(n * s))
+
+  // 제목 — 한 급만 크게, 본문과 2배 이내
+  if (workout.title) {
+    const size = px(tok.titleSize)
+    const f = `${tok.titleWeight} ${size}px ${titleFam}`
+    ctx.font = f
+    const raw = tok.titleUpper ? workout.title.toUpperCase() : workout.title
+    const lines = wrapText(ctx, raw, maxW)
+    const ruled = tok.rule === 'bar' || tok.rule === 'underline'
+    lines.forEach((line, i) => rows.push({
+      text: line, font: f, color: pal.title, indent: 0,
+      advance: Math.round(size * 1.02), marginTop: 0,
+      stroke: tok.titleOutline,
+      ruleAfter: ruled && i === lines.length - 1,
+      ruleGap: ruled && i === lines.length - 1 ? Math.round(size * 0.34) : 0,
+    }))
+  }
+
+  // 포맷
+  if (workout.format) {
+    const size = px(tok.formatSize)
+    const f = `700 ${size}px ${tok.bodyMono ? MONO : titleFam}`
+    rows.push({
+      text: tok.bodyMono ? '// ' + workout.format.toUpperCase() : workout.format.toUpperCase(),
+      font: f, color: pal.accent, indent: 0,
+      advance: Math.round(size * 1.22), marginTop: px(14),
+    })
+  }
+
+  const groups = parseExercises(workout.exercises)
+  let firstBody = true
+
+  for (const group of groups) {
+    const parsed = classifyLines(group)
+    let firstOfGroup = true
+
+    for (const p of parsed) {
+      const groupGap = firstOfGroup ? px(20) : 0
+      firstOfGroup = false
+
+      if (p.kind === 'part') {
+        const size = px(tok.partSize)
+        const f = `700 ${size}px ${bodyFam}`
+        ctx.font = f
+        wrapText(ctx, p.left.toUpperCase(), maxW).forEach((line, i) => rows.push({
+          text: line, font: f, color: pal.accent, indent: 0,
+          advance: Math.round(size * 1.32),
+          marginTop: i === 0 ? (firstBody ? px(24) : px(28)) + groupGap : 0,
+        }))
+      } else if (p.kind === 'lead') {
+        const size = px(tok.moveSize)
+        const f = `600 ${size}px ${bodyFam}`
+        ctx.font = f
+        wrapText(ctx, p.left, maxW).forEach((line, i) => rows.push({
+          text: line, font: f, color: pal.move, indent: i === 0 ? 0 : px(18),
+          advance: Math.round(size * 1.30),
+          marginTop: i === 0 ? px(6) + groupGap : 0,
+        }))
+      } else if (p.kind === 'move' || p.kind === 'split') {
+        const size = px(tok.moveSize)
+        const specSize = px(tok.moveSize * 0.86)
+        const nameFont = `600 ${size}px ${bodyFam}`
+        const specFont = p.kind === 'split' ? `600 ${specSize}px ${MONO}` : `700 ${specSize}px ${bodyFam}`
+        let leftMax = maxW
+        if (p.right) { ctx.font = specFont; leftMax = maxW - ctx.measureText(p.right).width - SPEC_GAP }
+        ctx.font = nameFont
+        const lines = wrapText(ctx, p.left, Math.max(leftMax, maxW * 0.4))
+        lines.forEach((line, i) => rows.push({
+          text: line, font: nameFont, color: pal.move,
+          right: i === 0 ? p.right : undefined,
+          rightFont: specFont,
+          rightColor: p.kind === 'split' ? pal.sub : pal.accent,
+          indent: i === 0 ? 0 : px(18),
+          advance: Math.round(size * 1.30),
+          marginTop: i === 0 ? px(8) + groupGap : 0,
+        }))
+      } else if (p.kind === 'rest') {
+        const size = px(tok.restSize)
+        const f = `400 ${size}px ${bodyFam}`
+        ctx.font = f
+        wrapText(ctx, p.left, maxW).forEach((line, i) => rows.push({
+          text: line, font: f, color: pal.sub, indent: 0,
+          advance: Math.round(size * 1.36),
+          marginTop: i === 0 ? px(4) + groupGap : 0,
+        }))
+      } else {
+        const size = px(tok.moveSize * 0.88)
+        const f = `400 ${size}px ${bodyFam}`
+        ctx.font = f
+        wrapText(ctx, p.left, maxW).forEach((line, i) => rows.push({
+          text: line, font: f, color: pal.text, indent: 0,
+          advance: Math.round(size * 1.38),
+          marginTop: i === 0 ? px(8) + groupGap : 0,
+        }))
+      }
+      firstBody = false
+    }
+  }
+
+  return rows
+}
+
+const totalH = (rows: Row[]) => rows.reduce((a, r) => a + r.marginTop + r.advance + (r.ruleGap || 0), 0)
+
+function measureCol(ctx: CanvasRenderingContext2D, rows: Row[], maxW: number) {
+  let w = 0
+  for (const r of rows) {
+    ctx.font = r.font
+    let rw = r.indent + ctx.measureText(r.text).width
+    if (r.right && r.rightFont) { ctx.font = r.rightFont; rw += SPEC_GAP + ctx.measureText(r.right).width }
+    w = Math.max(w, rw)
+  }
+  return Math.min(Math.max(w, 120), maxW)
+}
+
+/* ── 4. 레이아웃 (오토핏 + 안전영역 클램프) ───────────────── */
+
+function layoutBlock(
+  ctx: CanvasRenderingContext2D,
+  workout: Workout,
+  tok: Tokens,
+  s: number,
+  pal: Palette,
+  displayFont: string,
+  maxW: number,
+  availH: number
+) {
+  let rows = buildRows(ctx, workout, tok, s, pal, displayFont, maxW)
+  let h = totalH(rows)
+
+  // 1차: 잘라내는 대신 축소
+  if (h > availH) {
+    const shrink = Math.max(MIN_SHRINK, availH / h)
+    rows = buildRows(ctx, workout, tok, s * shrink, pal, displayFont, maxW)
+    h = totalH(rows)
+  }
+
+  // 2차: 그래도 넘치면 잘라내되 반드시 표시한다 (묵음 손실 금지)
+  let dropped = 0
+  if (h > availH) {
+    while (rows.length > 2 && totalH(rows) > availH - 44) { rows.pop(); dropped++ }
+    if (dropped > 0) {
+      const size = Math.max(18, Math.round(tok.restSize * s * 0.9))
+      rows.push({
+        text: `+ ${dropped} MORE`, font: `700 ${size}px ${tok.bodyMono ? MONO : SANS}`,
+        color: pal.accent, indent: 0, advance: Math.round(size * 1.3), marginTop: Math.round(14 * s),
+      })
+    }
+    h = totalH(rows)
+  }
+
+  const colW = measureCol(ctx, rows, maxW)
+  const firstAscent = rows.length ? rows[0].advance * 0.78 : 0
+  // 마지막 줄은 advance 전체가 아니라 디센더만 차지한다 — 실제 시각 높이로 보정
+  const last = rows[rows.length - 1]
+  const height = last ? h - last.advance + Math.round(last.advance * 0.26) : h
+  return { rows, height, colW, firstAscent, dropped }
+}
+
+/* ── 5. 페인트 ────────────────────────────────────────────── */
+
+function paintBlock(
+  ctx: CanvasRenderingContext2D,
+  block: ReturnType<typeof layoutBlock>,
+  x: number,
+  baseline0: number,
+  tok: Tokens,
+  pal: Palette,
+  dark: boolean,
+  scrim: boolean
+) {
+  const { rows, height, colW, firstAscent } = block
+  const top = baseline0 - firstAscent
+  const boxH = firstAscent + height   // 첫 줄 어센더 ~ 마지막 줄 디센더
+  const savedShadowColor = ctx.shadowColor
+  const savedShadowBlur = ctx.shadowBlur
+
+  // 텍스트 뒤 국소 스크림 / 박스 — 밝은 사진 위에서도 대비 확보
+  if (tok.box || scrim) {
+    ctx.shadowBlur = 0
+    const padX = tok.box ? 34 : 26
+    const padY = tok.box ? 30 : 22
+    ctx.fillStyle = tok.box
+      ? (dark ? 'rgba(255,255,255,0.90)' : 'rgba(0,0,0,0.66)')
+      : (dark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.42)')
+    roundRect(ctx, x - padX, top - padY, colW + padX * 2, boxH + padY * 2, tok.box ? 22 : 18)
+    ctx.fill()
+    if (tok.box) {
+      ctx.fillStyle = pal.accent
+      ctx.fillRect(x - padX, top - padY, 6, boxH + padY * 2)
+    }
+    ctx.shadowColor = savedShadowColor
+    ctx.shadowBlur = savedShadowBlur
+  }
+
+  // 세로 룰 (editorial)
+  if (tok.rule === 'left') {
+    ctx.shadowBlur = 0
+    ctx.fillStyle = pal.accent
+    ctx.fillRect(x - 22, top, 3, boxH)
+    ctx.shadowColor = savedShadowColor
+    ctx.shadowBlur = savedShadowBlur
+  }
+
+  let y = baseline0
+  for (const row of rows) {
+    y += row.marginTop
+    ctx.font = row.font
+    if (row.stroke) {
+      ctx.lineWidth = Math.max(2, Math.round(row.advance * 0.045))
+      ctx.strokeStyle = row.color
+      ctx.strokeText(row.text, x + row.indent, y)
+    } else {
+      ctx.fillStyle = row.color
+      ctx.fillText(row.text, x + row.indent, y)
+    }
+    if (row.right && row.rightFont) {
+      ctx.font = row.rightFont
+      ctx.fillStyle = row.rightColor || pal.accent
+      ctx.textAlign = 'right'
+      ctx.fillText(row.right, x + colW, y)
+      ctx.textAlign = 'left'
+    }
+    if (row.ruleAfter) {
+      const blur = ctx.shadowBlur
+      ctx.shadowBlur = 0
+      ctx.fillStyle = pal.accent
+      if (tok.rule === 'bar') ctx.fillRect(x, y + row.advance * 0.24, Math.min(140, colW), 8)
+      else if (tok.rule === 'underline') ctx.fillRect(x, y + row.advance * 0.26, colW, 4)
+      ctx.shadowBlur = blur
+      y += row.ruleGap || 0
+    }
+    y += row.advance
+  }
+}
+
+/* ── 6. 진입점 ────────────────────────────────────────────── */
+
 function applyTextStyle(
   ctx: CanvasRenderingContext2D,
   workout: Workout,
@@ -133,210 +539,22 @@ function applyTextStyle(
   scale: number = 1,
   dark: boolean = false,
   font: string = '"Bebas Neue", Impact, sans-serif',
-  accent: string = '#E5FE3D'
+  accent: string = '#E5FE3D',
+  opts: { scrim?: boolean } = {}
 ) {
-  const groups = parseExercises(workout.exercises)
-  let y = ty
-  const s = scale
-  const titleColor = dark ? 'rgba(0,0,0,0.92)' : 'rgba(255,255,255,0.95)'
-  const accentColor = dark && accent === '#E5FE3D' ? '#b8a800' : accent
-  const bodyColor = dark ? 'rgba(0,0,0,0.65)' : 'rgba(255,255,255,0.6)'
+  const tok = TOKENS[style] ?? TOKENS.minimal
+  const pal = palette(dark, accent)
+  const maxW = W - tx - 56
+  const availH = H - SAFE_BOTTOM - SAFE_TOP
 
-  if (style === 'minimal') {
-    if (workout.title) {
-      ctx.font = `700 ${Math.round(56*s)}px ${font}`
-      ctx.fillStyle = titleColor
-      ctx.fillText(workout.title, tx, y); y += Math.round(64*s)
-    }
-    if (workout.format) {
-      ctx.font = `300 ${Math.round(24*s)}px -apple-system, sans-serif`
-      ctx.fillStyle = accentColor
-      ctx.fillText(workout.format, tx, y); y += Math.round(36*s)
-    }
-    y += 4
-    ctx.font = `300 ${Math.round(22*s)}px -apple-system, sans-serif`
-    ctx.fillStyle = bodyColor
-    for (const group of groups) {
-      for (const ex of group) { if (y > H - 60) break; ctx.fillText(ex, tx, y); y += Math.round(30*s) }
-      y += Math.round(10*s)
-    }
+  const block = layoutBlock(ctx, workout, tok, scale, pal, font, maxW, availH)
 
-  } else if (style === 'bold') {
-    if (workout.title) {
-      ctx.font = `700 ${Math.round(120*s)}px ${font}`
-      ctx.fillStyle = dark ? 'rgba(0,0,0,0.92)' : 'white'
-      for (const line of wrapText(ctx, workout.title, W - tx - 56)) {
-        ctx.fillText(line, tx, y); y += Math.round(124*s)
-      }
-    }
-    if (workout.format) {
-      ctx.font = `700 ${Math.round(52*s)}px ${font}`
-      ctx.fillStyle = accentColor
-      ctx.fillText(workout.format, tx, y); y += Math.round(62*s)
-    }
-    ctx.font = `400 ${Math.round(30*s)}px -apple-system, sans-serif`
-    ctx.fillStyle = dark ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.82)'
-    for (const group of groups) {
-      for (const ex of group) { if (y > H - 60) break; ctx.fillText(ex, tx, y); y += Math.round(40*s) }
-      y += Math.round(14*s)
-    }
+  // 안전영역 클램프 — 아래로 흘러넘치는 대신 블록을 위로 밀어 올린다
+  const minBaseline = SAFE_TOP + block.firstAscent
+  const maxBaseline = H - SAFE_BOTTOM - block.height
+  const baseline0 = Math.max(minBaseline, Math.min(ty, Math.max(minBaseline, maxBaseline)))
 
-  } else if (style === 'editorial') {
-    const x = tx + 20
-    ctx.shadowBlur = 0
-    ctx.fillStyle = accentColor
-    ctx.fillRect(tx, y - 14, 2, Math.round(240*s))
-    if (workout.title) {
-      ctx.font = `700 ${Math.round(70*s)}px ${font}`
-      ctx.fillStyle = dark ? 'rgba(0,0,0,0.92)' : 'white'
-      ctx.fillText(workout.title, x, y); y += Math.round(78*s)
-    }
-    if (workout.format) {
-      ctx.font = `300 ${Math.round(26*s)}px -apple-system, sans-serif`
-      ctx.fillStyle = accentColor
-      ctx.fillText(workout.format.toUpperCase(), x, y); y += Math.round(38*s)
-    }
-    y += 10
-    ctx.font = `300 ${Math.round(24*s)}px -apple-system, sans-serif`
-    ctx.fillStyle = dark ? 'rgba(0,0,0,0.65)' : 'rgba(255,255,255,0.65)'
-    for (const group of groups) {
-      for (const ex of group) { if (y > H - 60) break; ctx.fillText(ex, x, y); y += Math.round(32*s) }
-      y += Math.round(12*s)
-    }
-
-  } else if (style === 'clean') {
-    if (workout.title) {
-      ctx.font = `700 ${Math.round(82*s)}px ${font}`
-      ctx.fillStyle = dark ? 'rgba(0,0,0,0.92)' : 'white'
-      ctx.fillText(workout.title, tx, y); y += Math.round(90*s)
-    }
-    if (workout.format) {
-      ctx.font = `400 ${Math.round(28*s)}px -apple-system, sans-serif`
-      ctx.fillStyle = accentColor
-      ctx.fillText(workout.format, tx, y); y += Math.round(42*s)
-    }
-    y += 8
-    ctx.font = `300 ${Math.round(26*s)}px -apple-system, sans-serif`
-    ctx.fillStyle = dark ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.75)'
-    for (const group of groups) {
-      for (const ex of group) { if (y > H - 60) break; ctx.fillText(ex, tx, y); y += Math.round(34*s) }
-      y += Math.round(12*s)
-    }
-
-  } else if (style === 'outline') {
-    if (workout.title) {
-      ctx.font = `700 ${Math.round(116*s)}px ${font}`
-      ctx.lineWidth = Math.max(2, Math.round(3*s))
-      ctx.strokeStyle = dark ? 'rgba(0,0,0,0.92)' : 'white'
-      for (const line of wrapText(ctx, workout.title.toUpperCase(), W - tx - 56)) {
-        if (y > H - 80) break
-        ctx.strokeText(line, tx, y); y += Math.round(120*s)
-      }
-    }
-    if (workout.format) {
-      ctx.font = `700 ${Math.round(46*s)}px ${font}`
-      ctx.fillStyle = accentColor
-      ctx.fillText(workout.format, tx, y); y += Math.round(56*s)
-    }
-    ctx.font = `400 ${Math.round(28*s)}px -apple-system, sans-serif`
-    ctx.fillStyle = dark ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.82)'
-    for (const group of groups) {
-      for (const ex of group) { if (y > H - 60) break; ctx.fillText(ex, tx, y); y += Math.round(38*s) }
-      y += Math.round(12*s)
-    }
-
-  } else if (style === 'poster') {
-    if (workout.title) {
-      ctx.font = `700 ${Math.round(140*s)}px ${font}`
-      ctx.fillStyle = dark ? 'rgba(0,0,0,0.92)' : 'white'
-      for (const word of workout.title.toUpperCase().split(' ')) {
-        if (y > H - 80) break
-        ctx.fillText(word, tx, y, W - tx - 56); y += Math.round(136*s)
-      }
-      ctx.fillStyle = accentColor
-      ctx.fillRect(tx + 6, y - Math.round(96*s), Math.round(120*s), Math.round(8*s))
-      y += Math.round(4*s)
-    }
-    if (workout.format) {
-      ctx.font = `700 ${Math.round(48*s)}px ${font}`
-      ctx.fillStyle = accentColor
-      ctx.fillText(workout.format, tx, y); y += Math.round(58*s)
-    }
-    ctx.font = `400 ${Math.round(28*s)}px -apple-system, sans-serif`
-    ctx.fillStyle = dark ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.82)'
-    for (const group of groups) {
-      for (const ex of group) { if (y > H - 60) break; ctx.fillText(ex, tx, y); y += Math.round(38*s) }
-      y += Math.round(12*s)
-    }
-
-  } else if (style === 'box') {
-    ctx.shadowBlur = 0
-    const titleFontStr = `700 ${Math.round(60*s)}px ${font}`
-    const formatFontStr = `400 ${Math.round(26*s)}px -apple-system, sans-serif`
-    const bodyFontStr = `300 ${Math.round(24*s)}px -apple-system, sans-serif`
-    const maxTextW = W - tx - 80
-    const lines: { text: string; font: string; color: string; gap: number }[] = []
-    if (workout.title) {
-      ctx.font = titleFontStr
-      for (const l of wrapText(ctx, workout.title, maxTextW)) {
-        lines.push({ text: l, font: titleFontStr, color: titleColor, gap: Math.round(68*s) })
-      }
-    }
-    if (workout.format) {
-      lines.push({ text: workout.format, font: formatFontStr, color: accentColor, gap: Math.round(42*s) })
-    }
-    for (const group of groups) {
-      for (const ex of group) {
-        lines.push({ text: ex, font: bodyFontStr, color: dark ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.85)', gap: Math.round(32*s) })
-      }
-      lines.push({ text: '', font: bodyFontStr, color: '', gap: Math.round(8*s) })
-    }
-    while (lines.length && lines[lines.length - 1].text === '') lines.pop()
-    let boxW = 0
-    let contentH = 0
-    for (const l of lines) {
-      if (l.text) { ctx.font = l.font; boxW = Math.max(boxW, ctx.measureText(l.text).width) }
-      contentH += l.gap
-    }
-    const padX = 32
-    const boxTop = y - Math.round(54*s)
-    const boxH = contentH + Math.round(54*s) + 12
-    ctx.fillStyle = dark ? 'rgba(255,255,255,0.88)' : 'rgba(0,0,0,0.6)'
-    roundRect(ctx, tx - padX, boxTop, Math.min(boxW, maxTextW) + padX * 2, boxH, 20)
-    ctx.fill()
-    ctx.fillStyle = accentColor
-    ctx.fillRect(tx - padX, boxTop, 6, boxH)
-    for (const l of lines) {
-      if (l.text && y < H - 40) {
-        ctx.font = l.font
-        ctx.fillStyle = l.color
-        ctx.fillText(l.text, tx, y, maxTextW)
-      }
-      y += l.gap
-    }
-
-  } else if (style === 'mono') {
-    const monoFamily = 'Consolas, "Courier New", monospace'
-    if (workout.title) {
-      ctx.font = `700 ${Math.round(48*s)}px ${monoFamily}`
-      ctx.fillStyle = titleColor
-      for (const line of wrapText(ctx, workout.title, W - tx - 56)) {
-        if (y > H - 80) break
-        ctx.fillText(line, tx, y); y += Math.round(58*s)
-      }
-    }
-    if (workout.format) {
-      ctx.font = `700 ${Math.round(26*s)}px ${monoFamily}`
-      ctx.fillStyle = accentColor
-      ctx.fillText('// ' + workout.format.toUpperCase(), tx, y); y += Math.round(44*s)
-    }
-    ctx.font = `400 ${Math.round(24*s)}px ${monoFamily}`
-    ctx.fillStyle = dark ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.75)'
-    for (const group of groups) {
-      for (const ex of group) { if (y > H - 60) break; ctx.fillText(ex, tx, y); y += Math.round(34*s) }
-      y += Math.round(12*s)
-    }
-  }
+  paintBlock(ctx, block, tx, baseline0, tok, pal, dark, (opts.scrim ?? false) && tok.scrim)
 }
 
 const TEMPLATE_KEY = 'hyrox_template'
@@ -393,7 +611,10 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
     ctx.putImageData(bgCacheRef.current, 0, 0)
-    applyTextStyle(ctx, w, ts, pos.x * W, pos.y * H, scale, isDark, family, accentColor)
+    // 밝은 사진 위 대비 보강: 그라디언트가 얕은 오버레이에서만 국소 스크림을 깐다
+    const useScrim = !!uploadedImage && (overlay === 'none' || overlay === 'soft' || overlay === 'bw')
+    if (uploadedImage) { ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = 14 }
+    applyTextStyle(ctx, w, ts, pos.x * W, pos.y * H, scale, isDark, family, accentColor, { scrim: useScrim })
     ctx.shadowBlur = 0
     ctx.font = `700 46px "Bebas Neue", Impact, sans-serif`
     ctx.fillStyle = 'white'
@@ -407,7 +628,7 @@ export default function WorkoutTemplate({ workout, onClose }: Props) {
     ctx.font = `700 32px "Bebas Neue", Impact, sans-serif`
     ctx.fillStyle = 'rgba(255,255,255,0.75)'
     ctx.fillText('@HYROX_DAILY', 56, H - 32)
-  }, [workout])
+  }, [workout, uploadedImage, overlay])
 
   const drawBg = useCallback(async (src: string, ov: OverlayId, accentColor: string) => {
     const drawId = ++drawIdRef.current
