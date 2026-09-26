@@ -3,7 +3,7 @@ import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: 'HYROX Daily — 가이드',
-  description: 'HYROX DAILY 프로그램 구조, 강도 용어, 페이스 기준표, 장비 대체 가이드',
+  description: 'HYROX DAILY 프로그램 구조, 레이스 무게, 강도 용어, 페이스 기준표, 장비 대체, 시합 주 가이드',
 }
 
 function Table({ headers, rows, minWidth }: { headers: string[]; rows: React.ReactNode[][]; minWidth?: string }) {
@@ -59,84 +59,141 @@ export default function GuidePage() {
           <a href="#program" className="block px-4 py-3 border border-gray-800 rounded hover:border-accent hover:text-accent transition text-gray-300">
             ① 프로그램 소개
           </a>
+          <a href="#weight" className="block px-4 py-3 border border-gray-800 rounded hover:border-accent hover:text-accent transition text-gray-300">
+            ② 내 레이스 무게
+          </a>
           <a href="#pace" className="block px-4 py-3 border border-gray-800 rounded hover:border-accent hover:text-accent transition text-gray-300">
-            ② 강도 용어 &amp; 페이스 기준표
+            ③ 강도 용어 &amp; 페이스 기준표
           </a>
           <a href="#equipment" className="block px-4 py-3 border border-gray-800 rounded hover:border-accent hover:text-accent transition text-gray-300">
-            ③ 장비 대체
+            ④ 장비 대체
+          </a>
+          <a href="#race" className="block px-4 py-3 border border-gray-800 rounded hover:border-accent hover:text-accent transition text-gray-300">
+            ⑤ 시합 주 &amp; 시합 당일
           </a>
         </nav>
 
         {/* ① 프로그램 소개 */}
         <section id="program" className="mb-20 scroll-mt-8">
           <h2 className="font-bebas text-3xl text-gray-400 mb-8 border-t border-gray-700 pt-8">
-            ① 이 프로그램은 — 구조와 목표
+            ① 프로그램 소개
           </h2>
 
           <p className="text-lg leading-relaxed mb-6">
-            <B>HYROX 완주와 기록 단축을 위한 주 6일 프로그램입니다.</B> 핵심은 세 가지:
+            <B>혼자 훈련하는 사람을 위한 주 6일 HYROX 프로그램이에요.</B> 세 가지를 키워요.
           </p>
 
           <ol className="space-y-3 mb-10 border-l-4 border-accent pl-6">
             <li className="leading-relaxed">
-              1. <B>유산소 엔진</B> — 주중 러닝 볼륨으로 레이스의 기반이 되는 유산소 능력을 쌓습니다.
+              1. <B>유산소 엔진:</B> 편하게 오래 달리는 날이 주 3번 있어요.
             </li>
             <li className="leading-relaxed">
-              2. <B>스트렝스</B> — 주 2회. 슬레드·캐리·런지·월볼을 버티는 힘을 만듭니다.
+              2. <B>근력:</B> 주 2번. 슬레드, 캐리, 런지, 월볼을 버티는 힘을 만들어요.
             </li>
             <li className="leading-relaxed">
-              3. <B>Compromised Running</B> — 스테이션 직후에도 페이스를 유지하는 능력. HYROX의 본질이며, 주말 키세션이 이걸 훈련합니다.
+              3. <B>스테이션 뒤에 뛰는 힘:</B> 시합에서 제일 힘든 부분이에요. 토요일마다 연습해요.
             </li>
           </ol>
 
-          <h3 className="font-bebas text-2xl mb-4">주간 구조 (고정)</h3>
+          <h3 className="font-bebas text-2xl mb-4">한 주 구성</h3>
           <div className="mb-4">
             <Table
-              headers={['요일', '세션', '목적']}
+              headers={['요일', '세션', '내용']}
               rows={[
-                ['월', 'Easy Run + Machine Conditioning', 'zone 2 이지런 + 머신 라운드. 유산소 기반'],
-                ['화', 'Strength (또는 Threshold Intervals + 리프트)', '근력 / 역치 자극'],
-                ['수', 'Recovery Run 또는 Tempo Run + Station', '이지런 / 격주로 템포+스테이션'],
-                ['목', 'Recovery Run', '60–75분 zone 1–2. 볼륨 축적'],
-                ['금', 'Strength + Finisher', '근력 + 짧은 컨디셔닝'],
-                ['토', <B key="k">[필수세션] HYROX Key Session</B>, '그 주의 핵심. 레이스 특이적 훈련'],
-                ['일', 'Rest', '완전 휴식 권장'],
+                ['월', 'Easy Run + Machine', '편한 러닝 + 스키·로우·바이크'],
+                ['화', <B key="t">[필수] Threshold Run + Upper</B>, '숨찬 강도로 오래 버티기 + 짧은 상체 근력'],
+                ['수', 'Recovery Run', '길고 느리게'],
+                ['목', 'Easy Run + Core', '편한 러닝 + 코어'],
+                ['금', 'Strength + Station Finisher', '근력 + 짧은 스테이션'],
+                ['토', <B key="k">[필수] HYROX Key Session</B>, '런 + 스테이션. 그 주에서 제일 중요한 날'],
+                ['일', 'Rest', '쉬세요'],
               ]}
             />
           </div>
 
           <p className="leading-relaxed mb-10 text-gray-300">
-            <B>시간이 없는 주엔 [필수세션] 2개만 하세요.</B> (토요일 키세션 + 주중 역치 계열 1개) — 이 둘이 그 주 자극의 핵심입니다.
+            요일마다 목적은 같지만 방식은 매주 달라요. <B>바쁜 주엔 화요일과 토요일 [필수] 두 개만 하세요.</B>
           </p>
 
-          <h3 className="font-bebas text-2xl mb-4">토요일 키세션 — 4가지 타입 로테이션</h3>
+          <h3 className="font-bebas text-2xl mb-4">토요일 스테이션 양</h3>
+          <p className="leading-relaxed mb-4 text-gray-300">
+            토요일 스테이션은 <B>대회 1회분 이상</B>이 기본이에요. 쉬어가는 주만 적게 해요.
+          </p>
           <div className="mb-10">
             <Table
-              headers={['타입', '훈련하는 것']}
+              headers={['종목', '대회 1회분']}
               rows={[
-                [<B key="c">Capacity</B>, '레이스 강도에서의 총 작업량. 런+스테이션 라운드 반복'],
-                [<B key="i">Intervals</B>, '레이스보다 짧고 빠르게 — 페이스 상한 끌어올리기'],
-                [<B key="t">Threshold</B>, '고피로 스테이션 직후에도 레이스 페이스 유지'],
-                [<B key="s">Simulation</B>, '대회 순서 그대로 리허설. 레이스 플랜 실행 연습'],
+                ['SkiErg', '1000m'],
+                ['Sled Push', '50m'],
+                ['Sled Pull', '50m'],
+                ['Burpee Broad Jump', '80m'],
+                ['Row', '1000m'],
+                ["Farmer's Carry", '200m'],
+                ['Sandbag Lunge', '100m'],
+                ['Wall Ball', '100개'],
               ]}
-              minWidth="min-w-[360px]"
+              minWidth="min-w-[300px]"
             />
           </div>
 
-          <h3 className="font-bebas text-2xl mb-4">8주 사이클</h3>
+          <h3 className="font-bebas text-2xl mb-4">11/15 HYROX 서울까지 7주</h3>
+          <div className="mb-4">
+            <Table
+              headers={['주', '기간', '단계', '토요일']}
+              rows={[
+                ['1', '9/28–10/4', '다시 시작', '대회 양 100%'],
+                ['2', '10/5–10/11', '빌드', '대회 양 110~120%'],
+                ['3', '10/12–10/18', <B key="3">하드 빌드</B>, '대회 양 130~150%'],
+                ['4', '10/19–10/25', '쉬어가는 주', '짧고 가볍게'],
+                ['5', '10/26–11/1', <B key="5">실전 피크</B>, '풀 시뮬레이션'],
+                ['6', '11/2–11/8', '다듬기', '하프 시뮬레이션'],
+                ['7', '11/9–11/15', <B key="7">시합 주</B>, '토: 가볍게 / 일: 시합'],
+              ]}
+              minWidth="min-w-[400px]"
+            />
+          </div>
           <p className="leading-relaxed text-gray-300">
-            프로그램은 8주 단위로 흐릅니다: <B>3주 빌드 → 1주 라이트 디로드</B>(강도만 낮춤) → <B>3주 하드 빌드 → 1주 풀 디로드</B>(볼륨·강도 모두 낮춤). 아무 주에 시작해도 되지만, 몸이 무거운 주가 디로드 주라면 그게 정상입니다 — 프로그램을 믿고 가볍게 가세요.
+            4주 차에 몸이 무겁게 느껴지는 건 정상이에요. 그 주는 양을 줄였으니 욕심내지 말고 가볍게 가세요.
           </p>
         </section>
 
-        {/* ② 강도 용어 & 페이스 기준표 */}
+        {/* ② 레이스 무게 */}
+        <section id="weight" className="mb-20 scroll-mt-8">
+          <h2 className="font-bebas text-3xl text-gray-400 mb-8 border-t border-gray-700 pt-8">
+            ② 내 레이스 무게
+          </h2>
+
+          <p className="text-lg leading-relaxed mb-6">
+            와드에 <B>&quot;레이스 무게&quot;</B>라고 적혀 있으면 본인이 나가는 부문 무게로 하세요.
+          </p>
+
+          <div className="mb-4">
+            <Table
+              headers={['종목', '일반부 남', '일반부 여', '프로 남', '프로 여']}
+              rows={[
+                ['Sled Push', '152kg', '102kg', '202kg', '152kg'],
+                ['Sled Pull', '103kg', '78kg', '153kg', '103kg'],
+                ["Farmer's Carry", '2×24kg', '2×16kg', '2×32kg', '2×24kg'],
+                ['Sandbag Lunge', '20kg', '10kg', '30kg', '20kg'],
+                ['Wall Ball', '6kg', '4kg', '9kg', '6kg'],
+              ]}
+              minWidth="min-w-[460px]"
+            />
+          </div>
+
+          <p className="leading-relaxed text-gray-300">
+            슬레드 무게는 썰매 무게를 포함한 값이에요. 체육관 슬레드마다 마찰이 달라서 같은 무게도 느낌이 달라요. <B>&quot;레이스 무게의 75%&quot;</B>처럼 적혀 있으면 위 무게에서 계산하세요.
+          </p>
+        </section>
+
+        {/* ③ 강도 용어 & 페이스 기준표 */}
         <section id="pace" className="mb-20 scroll-mt-8">
           <h2 className="font-bebas text-3xl text-gray-400 mb-8 border-t border-gray-700 pt-8">
-            ② 강도 용어 &amp; 페이스 기준표
+            ③ 강도 용어 &amp; 페이스 기준표
           </h2>
 
           <p className="text-lg leading-relaxed mb-4">
-            모든 와드의 페이스는 <B>본인 기록 기준 상대값</B>입니다. 앵커 두 개만 알면 됩니다:
+            페이스는 전부 <B>본인 기록 기준</B>이에요. 두 가지만 알면 돼요.
           </p>
           <ul className="space-y-2 mb-10 border-l-4 border-accent pl-6">
             <li className="leading-relaxed">
@@ -156,7 +213,7 @@ export default function GuidePage() {
                 [<B key="t">Tempo</B>, '힘들지만 여유 있음', 'zone 3 상단. 역치보다 확실히 아래'],
                 [<B key="st">Sub-threshold</B>, '역치 직전. 오래 버틸 수 있는 상한', 'Threshold pace +15~25초/km'],
                 [<B key="th">Threshold</B>, '말은 못 하고 단어만 뱉는 강도', '≈ 10K 레이스 페이스. 최대심박 88~92%'],
-                [<B key="r">Race Pace</B>, '본인 HYROX 목표 런 페이스', '스테이션 직후(compromised) 상태의 목표치'],
+                [<B key="r">Race Pace</B>, '스테이션 끝나고 지친 상태에서 뛰는 속도', '시합 때 1km마다 뛸 목표 페이스'],
               ]}
               minWidth="min-w-[520px]"
             />
@@ -179,7 +236,11 @@ export default function GuidePage() {
           </div>
 
           <p className="leading-relaxed mb-10 text-gray-300">
-            <B>10K 기록이 없다면:</B> 5K 기록 → 10K pace ≈ 5K pace +10~15초/km. 둘 다 없으면 30분 타임트라이얼의 마지막 20분 평균을 Threshold로 삼아 역산.
+            Sub-threshold와 Race Pace는 숫자가 같아요. 다른 점은 Race Pace는 <B>스테이션 바로 뒤, 지친 상태에서</B> 그 속도를 내는 거예요.
+          </p>
+
+          <p className="leading-relaxed mb-10 text-gray-300">
+            <B>10K 기록이 없다면:</B> 5K 페이스 +10~15초/km를 10K 페이스로 쓰세요. 둘 다 없으면 30분을 최대한 뛰고, 마지막 20분 평균을 Threshold로 삼으면 돼요.
           </p>
 
           <h3 className="font-bebas text-2xl mb-4">머신 스플릿 환산 (SkiErg / Row)</h3>
@@ -198,14 +259,14 @@ export default function GuidePage() {
           </div>
 
           <p className="leading-relaxed text-gray-300">
-            2k 기록이 없으면: 5k 평균 스플릿 −8~10초. Assault/Echo Bike는 easy / steady / hard 서술 기준으로.
+            2k 기록이 없으면 5k 평균 스플릿에서 8~10초를 빼세요. 바이크는 easy / steady / hard 느낌으로 맞추면 돼요.
           </p>
         </section>
 
-        {/* ③ 장비 대체 */}
+        {/* ④ 장비 대체 */}
         <section id="equipment" className="mb-20 scroll-mt-8">
           <h2 className="font-bebas text-3xl text-gray-400 mb-8 border-t border-gray-700 pt-8">
-            ③ 장비 대체 가이드 — 없으면 이렇게
+            ④ 장비 대체
           </h2>
 
           <div className="mb-4">
@@ -220,15 +281,54 @@ export default function GuidePage() {
                 ['Sandbag Lunge', 'DB 또는 바벨 런지 (같은 총 거리/reps)'],
                 ['Wall Ball', 'DB Thruster (같은 reps)'],
                 ['Burpee Broad Jump', '공간 없으면 Burpee + Tuck Jump'],
-                ['러닝 불가 (부상·날씨)', '머신으로 대체 — 같은 시간, 같은 강도 구간 (각 와드의 대체 룰 우선)'],
+                ['러닝 불가 (부상·날씨)', '머신으로 대체. 같은 시간, 같은 강도로'],
               ]}
               minWidth="min-w-[440px]"
             />
           </div>
 
           <p className="leading-relaxed text-gray-300">
-            각 와드에 개별 대체 룰이 적혀 있으면 <B>그 지시가 이 표보다 우선</B>입니다.
+            와드에 따로 대체 방법이 적혀 있으면 <B>그걸 먼저 따르세요.</B>
           </p>
+        </section>
+
+        {/* ⑤ 시합 주 & 시합 당일 */}
+        <section id="race" className="mb-20 scroll-mt-8">
+          <h2 className="font-bebas text-3xl text-gray-400 mb-8 border-t border-gray-700 pt-8">
+            ⑤ 시합 주 &amp; 시합 당일
+          </h2>
+
+          <h3 className="font-bebas text-2xl mb-4">시합 주</h3>
+          <ul className="space-y-3 mb-10 border-l-4 border-accent pl-6">
+            <li className="leading-relaxed">
+              운동량이 확 줄어요. <B>불안해서 더 하고 싶어져도 참으세요.</B> 이 주에 체력이 더 늘지는 않아요. 피로만 빼면 돼요.
+            </li>
+            <li className="leading-relaxed">
+              새로운 운동, 새 신발, 새 보충제는 시합 주에 시작하지 마세요.
+            </li>
+            <li className="leading-relaxed">
+              잠을 평소보다 많이 자는 게 제일 좋은 훈련이에요.
+            </li>
+          </ul>
+
+          <h3 className="font-bebas text-2xl mb-4">시합 당일</h3>
+          <ul className="space-y-3 mb-4 border-l-4 border-accent pl-6">
+            <li className="leading-relaxed">
+              <B>첫 1km가 제일 위험해요.</B> 몸이 가벼워서 빨리 나가기 쉬워요. 목표 페이스보다 살짝 느리게 시작하세요.
+            </li>
+            <li className="leading-relaxed">
+              스테이션 끝나고 첫 200m는 다리가 안 움직이는 게 정상이에요. 페이스는 그다음에 맞추면 돼요.
+            </li>
+            <li className="leading-relaxed">
+              월볼 100개는 미리 끊는 계획을 세우고 들어가세요. 예: 25-25-20-15-15.
+            </li>
+            <li className="leading-relaxed">
+              슬레드는 스테이션 들어가기 전에 호흡부터 정리하세요. 급하게 밀면 중간에 멈춰요.
+            </li>
+            <li className="leading-relaxed">
+              아침은 시합 3시간 전에, 평소 먹던 걸로 드세요.
+            </li>
+          </ul>
         </section>
 
         {/* Footer */}
