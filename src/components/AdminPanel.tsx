@@ -215,9 +215,9 @@ function PreviewWorkoutModal({ workout, onClose }: { workout: Workout; onClose: 
   )
 }
 
-export default function AdminPanel() {
+export default function AdminPanel({ adminPassword }: { adminPassword: string }) {
   const [formData, setFormData] = useState<FormData>({
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toLocaleDateString('en-CA'),
     title: '',
     format: '',
     exercises: '',
@@ -280,36 +280,20 @@ export default function AdminPanel() {
         .split('\n')
         .map(line => line.trimEnd())
 
-      if (editingId) {
-        const { error: err } = await supabase
-          .from('workouts')
-          .update({
-            date: formData.date,
-            title: formData.title || null,
-            format: formData.format || null,
-            exercises: exercisesArray,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', editingId)
+      const { error: err } = await supabase.rpc('admin_save_workout', {
+        p_password: adminPassword,
+        p_id: editingId,
+        p_date: formData.date,
+        p_title: formData.title || null,
+        p_format: formData.format || null,
+        p_exercises: exercisesArray,
+      })
 
-        if (err) throw err
-        setSuccessMessage('운동이 수정되었습니다')
-      } else {
-        const { error: err } = await supabase
-          .from('workouts')
-          .insert({
-            date: formData.date,
-            title: formData.title || null,
-            format: formData.format || null,
-            exercises: exercisesArray,
-          })
-
-        if (err) throw err
-        setSuccessMessage('운동이 추가되었습니다')
-      }
+      if (err) throw err
+      setSuccessMessage(editingId ? '운동이 수정되었습니다' : '운동이 추가되었습니다')
 
       setFormData({
-        date: new Date().toISOString().split('T')[0],
+        date: new Date().toLocaleDateString('en-CA'),
         title: '',
         format: '',
         exercises: '',
@@ -342,10 +326,10 @@ export default function AdminPanel() {
     if (!confirm('삭제하시겠습니까?')) return
 
     try {
-      const { error: err } = await supabase
-        .from('workouts')
-        .delete()
-        .eq('id', id)
+      const { error: err } = await supabase.rpc('admin_delete_workout', {
+        p_password: adminPassword,
+        p_id: id,
+      })
 
       if (err) throw err
       setSuccessMessage('운동이 삭제되었습니다')
@@ -358,7 +342,7 @@ export default function AdminPanel() {
 
   const handleCancel = () => {
     setFormData({
-      date: new Date().toISOString().split('T')[0],
+      date: new Date().toLocaleDateString('en-CA'),
       title: '',
       format: '',
       exercises: '',

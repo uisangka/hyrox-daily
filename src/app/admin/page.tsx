@@ -2,37 +2,57 @@
 
 import { useState, useEffect } from 'react'
 import AdminPanel from '@/components/AdminPanel'
+import { supabase } from '@/lib/supabase'
+
+const PASSWORD_KEY = 'admin_password'
+
+async function checkPassword(password: string) {
+  const { data, error } = await supabase.rpc('admin_check_password', { p_password: password })
+  if (error) throw error
+  return data === true
+}
 
 export default function AdminPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [adminPassword, setAdminPassword] = useState<string | null>(null)
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [checking, setChecking] = useState(true)
 
   useEffect(() => {
-    if (sessionStorage.getItem('admin_auth') === 'true') {
-      setIsAuthenticated(true)
+    const saved = sessionStorage.getItem(PASSWORD_KEY)
+    if (!saved) {
+      setChecking(false)
+      return
     }
-    setChecking(false)
+    checkPassword(saved)
+      .then(ok => {
+        if (ok) setAdminPassword(saved)
+        else sessionStorage.removeItem(PASSWORD_KEY)
+      })
+      .catch(() => sessionStorage.removeItem(PASSWORD_KEY))
+      .finally(() => setChecking(false))
   }, [])
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'admin'
-
-    if (password === adminPassword) {
-      sessionStorage.setItem('admin_auth', 'true')
-      setIsAuthenticated(true)
-      setError('')
-    } else {
-      setError('비밀번호가 틀렸습니다')
-      setPassword('')
+    try {
+      if (await checkPassword(password)) {
+        sessionStorage.setItem(PASSWORD_KEY, password)
+        setAdminPassword(password)
+        setError('')
+      } else {
+        setError('비밀번호가 틀렸습니다')
+        setPassword('')
+      }
+    } catch (err) {
+      const message = (err as { message?: string })?.message
+      setError(message ? `로그인 확인에 실패했습니다: ${message}` : '로그인 확인에 실패했습니다')
     }
   }
 
   if (checking) return null
 
-  if (!isAuthenticated) {
+  if (!adminPassword) {
     return (
       <main className="min-h-screen bg-dark flex items-center justify-center p-4">
         <div className="w-full max-w-md">
@@ -62,5 +82,5 @@ export default function AdminPage() {
     )
   }
 
-  return <AdminPanel />
+  return <AdminPanel adminPassword={adminPassword} />
 }
