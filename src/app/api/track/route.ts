@@ -6,7 +6,7 @@ export async function POST() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
-  const today = new Date().toLocaleDateString('en-CA')
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
   await supabase.rpc('increment_page_view', { view_date: today })
   return NextResponse.json({ ok: true })
 }
